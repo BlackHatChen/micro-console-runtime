@@ -1,0 +1,1 @@
+/usr/bin/c++ "CMakeFiles/micro-runtime.dir/main.cpp.o" -o ../bin/micro-runtime 
