@@ -8,7 +8,7 @@ file(GLOB SOURCES "*.cpp")
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
 # 設定 include 目錄 (針對 ${EXECUTABLE_NAME} 設定路徑) (當程式碼有 #include "header.h" 時，編譯器會去 include 目錄下尋找 header.h)
-target_include_directories(${EXECUTABLE_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(${EXECUTABLE_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 # 連結執行緒庫 (若找不到 Threads 會直接報錯) (PRIVATE 代表這個 Threads::Threads 只有自己知道)
 find_package(Threads REQUIRED)

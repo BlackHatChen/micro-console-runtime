@@ -1,4 +1,4 @@
-# Install script for directory: /home/black_hat/micro-console-runtime/src
+# Install script for directory: /app/src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

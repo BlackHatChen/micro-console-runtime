@@ -1,1 +1,1 @@
-/usr/bin/c++ "CMakeFiles/micro-runtime.dir/main.cpp.o" -o ../bin/micro-runtime 
+/usr/bin/c++ CMakeFiles/micro-runtime.dir/SlabAllocator.cpp.o CMakeFiles/micro-runtime.dir/main.cpp.o -o ../bin/micro-runtime 

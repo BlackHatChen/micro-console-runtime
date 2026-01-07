@@ -1,6 +1,8 @@
 file(REMOVE_RECURSE
   "../bin/micro-runtime"
   "../bin/micro-runtime.pdb"
+  "CMakeFiles/micro-runtime.dir/SlabAllocator.cpp.o"
+  "CMakeFiles/micro-runtime.dir/SlabAllocator.cpp.o.d"
   "CMakeFiles/micro-runtime.dir/main.cpp.o"
   "CMakeFiles/micro-runtime.dir/main.cpp.o.d"
 )
