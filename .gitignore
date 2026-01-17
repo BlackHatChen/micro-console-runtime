@@ -1,0 +1,27 @@
+# --- Build Artifacts (編譯產出物) ---
+build/
+bin/
+lib/
+*.d
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# --- CMake Generated Files (CMake 產生的暫存檔) ---
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# --- Editor / IDE Settings (編輯器設定) ---
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# --- OS Generated (作業系統垃圾) ---
+Thumbs.db
