@@ -1,6 +1,7 @@
 #include "SlabAllocator.hpp"
 #include <cstdlib> // malloc, free 等方法
 #include <new> // std::bad_alloc
+#include <algorithm> // std::max
 
 // 平台差異處理
 #if defined(_WIN32) || defined(_WIN64)
@@ -10,28 +11,35 @@
 #endif
 
 // 向 OS 申請一大塊記憶體區塊
-SlabAllocator::SlabAllocator(size_t blockSize, size_t blockCount) : m_blockSize(blockSize), m_blockCount(blockCount) 
+SlabAllocator::SlabAllocator(size_t blockSize, size_t blockCount, size_t alignment) : m_blockSize(blockSize), m_blockCount(blockCount), m_alignment(alignment) 
 {
-    // 嵌入式指標佔用的空間 (64 位元是 8 Bytes)
-    // 若小於 8 Bytes，還是要給他 8 Bytes，否則沒地方塞 Next Pointer
-    if (m_blockSize < sizeof(void*))
+    // ※ 參數檢查
+    // 對齊通常是2的次方，且至少要是指標的空間大小
+    if (m_alignment < sizeof(void*))
     {
-        m_blockSize = sizeof(void*);
+        m_alignment = sizeof(void*);
     }
     
-    size_t totalSize = m_blockSize * m_blockCount; // 總共需要多大的區塊
-    size_t alignment = sizeof(void*); // 對齊標準：指標大小 (8 Bytes)
+    // ※ 區塊大小計算
+    // 必須是使用者的需求大小（且至少要能塞下嵌入式指標）
+    size_t requiredSize = std::max(m_blockSize, sizeof(void*));
+
+    // 區塊大小的對齊計算
+    m_objectSize = (requiredSize + m_alignment - 1) / m_alignment * m_alignment;
+    
+    // 對齊後的總記憶體空間大小
+    size_t totalSize = m_objectSize * m_blockCount;
 
     // 向 OS 申請記憶體區塊
     #if defined(_WIN32) || defined(_WIN64)
-        m_memoryPool = _aligned_malloc(totalSize, alignment);
+        m_memoryPool = _aligned_malloc(totalSize, m_alignment);
         if (!m_memoryPool)
         {
             throw std::bad_alloc();
         }
     #else
         // 將分配好的區塊位址傳給 m_memoryPool，若成功則回傳 0
-        if (posix_memalign(&m_memoryPool, alignment, totalSize) != 0)
+        if (posix_memalign(&m_memoryPool, m_alignment, totalSize) != 0)
         {
             throw std::bad_alloc(); // 失敗則跳出分配錯誤訊息
         }
@@ -43,7 +51,7 @@ SlabAllocator::SlabAllocator(size_t blockSize, size_t blockCount) : m_blockSize(
 
     for (size_t i = 0; i < m_blockCount - 1; ++i)
     {
-        char* next = current + m_blockSize; // 計算下一個區塊的位址
+        char* next = current + m_objectSize; // 計算下一個區塊的位址
         *reinterpret_cast<void**>(current) = next; // 將下一個區塊的位址寫入當前的區塊空間
         current = next; // 迭代到下一個區塊
     }
