@@ -2,6 +2,7 @@
 #include <cstdlib> // malloc, free 等方法
 #include <new> // std::bad_alloc
 #include <algorithm> // std::max
+#include <stdexcept> // std::invalid_argument
 
 // 平台差異處理
 #if defined(_WIN32) || defined(_WIN64)
@@ -13,11 +14,19 @@
 // 向 OS 申請一大塊記憶體區塊
 SlabAllocator::SlabAllocator(size_t blockSize, size_t blockCount, size_t alignment) : m_blockSize(blockSize), m_blockCount(blockCount), m_alignment(alignment) 
 {
-    // ※ 參數檢查
-    // 對齊通常是2的次方，且至少要是指標的空間大小
+    // ※ 參數檢查 1
+    // 對齊空間至少要是指標的空間大小
     if (m_alignment < sizeof(void*))
     {
         m_alignment = sizeof(void*);
+    }
+
+    // ※ 參數檢查 2
+    // 確保對齊空間是2的次方
+    // 若 x 是2的次方，x & (x-1) 必定為 0
+    if ((m_alignment & (m_alignment - 1)) != 0)
+    {
+        throw std::invalid_argument("Alignment must be a power of 2");
     }
     
     // ※ 區塊大小計算
@@ -25,7 +34,8 @@ SlabAllocator::SlabAllocator(size_t blockSize, size_t blockCount, size_t alignme
     size_t requiredSize = std::max(m_blockSize, sizeof(void*));
 
     // 區塊大小的對齊計算
-    m_objectSize = (requiredSize + m_alignment - 1) / m_alignment * m_alignment;
+    // m_objectSize = (requiredSize + m_alignment - 1) / m_alignment * m_alignment; 數學計算法
+    m_objectSize = (requiredSize + m_alignment - 1) & ~(m_alignment - 1); // 位元操作法 (注：僅生效於對齊值為2的次方)
     
     // 對齊後的總記憶體空間大小
     size_t totalSize = m_objectSize * m_blockCount;
