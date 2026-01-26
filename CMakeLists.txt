@@ -23,7 +23,21 @@ endif()
 # 設定輸出目錄為專案根目錄下的 bin 資料夾
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# 引入 GoogleTest 套件 (用於單元測試)
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+)
+# 為了避免 GoogleTest 使用自己的 CMake 設定覆蓋專案設定
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 # 加入以下子目錄
 add_subdirectory(src)
-# add_subdirectory(tests)
+
+# 加入測試目錄
+enable_testing()
+add_subdirectory(tests)
+
 # add_subdirectory(external)
