@@ -1,0 +1,48 @@
+name: C++ CI Pipeline
+
+# 觸發時機：
+# - 程式碼推送到 main 分支
+# - 針對 main 分支的 pull request
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    # 作業系統環境
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. 下載程式碼 (checkout)
+    # checkout@v4: 這是 GitHub 官方提供的 action，用來把程式碼下載到 runner 上
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 2. 安裝編譯工具 (CMake 和 G++)
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ make
+
+    # 3. 設定 CMake (生成 Makefile)
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+
+    # 4. 編譯程式碼
+    # -j$(nproc): 使用所有可用的 CPU 核心來加速編譯
+    - name: Build
+      run: |
+        cd build
+        make -j$(nproc)
+
+    # 5. 執行測試
+    # --output-on-failure: 如果測試失敗，會把詳細原因印出來，方便除錯
+    - name: Run Unit Tests
+      run: |
+        cd build
+        ctest --output-on-failure
