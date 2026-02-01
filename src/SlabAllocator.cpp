@@ -16,10 +16,7 @@ SlabAllocator::SlabAllocator(size_t blockSize, size_t blockCount, size_t alignme
 {
     // ※ 參數檢查 1
     // 對齊空間至少要是指標的空間大小
-    if (m_alignment < sizeof(void*))
-    {
-        m_alignment = sizeof(void*);
-    }
+    m_alignment = std::max(m_alignment, sizeof(void*));
 
     // ※ 參數檢查 2
     // 確保對齊空間是2的次方
