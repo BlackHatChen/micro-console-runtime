@@ -1,0 +1,16 @@
+<type>(<scope>): <subject> (Max 50 chars)
+# |<----  Using a Maximum Of 50 Characters  ---->|
+
+# Explain why this change is being made.
+# Problem being solved? Previous behavior?
+# |<----  Try To Limit Each Line to a Maximum Of 72 Characters  ---->|
+
+# [Mechanism/How] Explain how you solved it (Technical Implementation).
+# Algorithms? Data structures? Alignments? Memory Ordering?
+
+# Fixes: #issue
+# Relates-to: #issue
+# Signed-off-by:
+
+# Types: mm, alloc, lock, feat, fix, perf, refactor, test, docs, ci
+# Scopes: buddy, slab, arena, freelist, gc, os, sync, api
