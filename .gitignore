@@ -1,0 +1,17 @@
+# Build directories
+build/
+out/
+bin/
+lib/
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# CMake generated
+compile_commands.json
+CMakeUserPresets.json
