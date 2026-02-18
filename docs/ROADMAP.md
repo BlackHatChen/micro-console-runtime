@@ -2,7 +2,7 @@
 The project simulates a constrained embedded runtime environment.
 This document outlines the development milestones for the project.
 
-## v0.1.0: Core Infrastucture & Allocator
+## v0.1.0: Core Infrastructure & Allocator
 Foundation of the runtime environment with a deterministic memory model.
 - [x] **Build System & Environment**
   - Project structure design (src, include, tests, docs).
