@@ -1,17 +1,49 @@
 # Micro Console Runtime - Engineering Roadmap
-This project simulates a constrained embedded runtime environment.
+The project simulates a constrained embedded runtime environment.
+This document outlines the development milestones for the project.
 
-## Current Focus Module: High-Performance Memory Allocator
-**Goal**: Implement a deterministic, low-fragmentation memory allocator inspired by OS kernel designs.
+## v0.1.0: Core Infrastucture & Allocator
+Foundation of the runtime environment with a deterministic memory model.
+- [x] **Build System & Environment**
+  - Project structure design (src, include, tests, docs).
+  - CMake-based build system with strictly enforced compiler flags (`-Wall -Wextra -Werror`).
+  - Dockerized development container for reproducible builds.
+- [x] **Quality Control Hooks**
+  - Git Hooks infrastructure and commit template for enforcing Conventional Commits.
+- [x] **Slab Allocator Implementation**
+  - Fixed-size block partitioning strategies.
+  - O(1) allocation/deallocation time complexity (Using embedded free lists).
+  - Memory alignment (Aligned to a word size - 8 bytes in 64-bit systems).
 
-- [x] **Infrastructure**: Project structure, CMake build system, Docker environment.
-- [x] **CI/CD**: Git Hooks (enforcing commit standards), strict compiler flags.
-- [x] **Core Allocator**: Slab allocation mechanism (for fixed-size memory blocks).
-- [ ] **Optimization**: Hardware cache-line alignment and padding.
-- [ ] **Safety**: Debugging tools (Red Zones and Poisoning).
-- [ ] **Validation**: Unit tests and memory fragmentation analysis report.
+## v0.2.0: Reliability, Testing and CI
+Enhancing system stability through automated testing and continuous integration.
+- [ ] **Automated Testing Framework**
+  - Integration of **Google Test** by CMake FetchContent.
+  - Unit tests coverage for `SlabAllocator` (Boundary check, edge case, OOM handling).
+- [ ] **CI/CD Pipeline Automation**
+  - **GitHub Actions workflow** for automated building and testing on Linux/Ubuntu runners.
+- [ ] **Performance Profiling**
+  - Integration of **Google Benchmark**.
+  - Throughput analysis: `SlabAllocator` vs. System `malloc`.
 
-## Future Architecture
-Upon completion of the memory subsystem, the following modules are planned:
-- **Concurrency Subsystem**: Lock-free ring buffer and zero-copy message passing.
-- **Simulation Engine**: Data-Oriented (ECS) structure and SIMD optimization.
+## v0.3.0: Hardware Optimization & Architecture
+Low-level optimizations targeting specific hardware constraints.
+- [ ] **Cache Coherency Optimization**
+  - Enforce 64 bytes (Cache Line) alignment to prevent False Sharing.
+  - Record padding size mechanism in header for arbitrary alignment support.
+- [ ] **Standard Interface Compliance**
+  - Implement `aligned_alloc` standard interface.
+
+## v0.4.0: Memory Safety & Debugging Tools
+Advanced diagnostics for detecting runtime memory corruption.
+- [ ] **Corruption Detection**
+  - **Redzone Protection**: Buffer overflow detection using specific patterns (0xDEADBEEF).
+  - **Poisoning**: Use-After-Free detection using specific patterns (0xCCCCCCCC).
+- [ ] **Fragmentation Analysis**
+  - Memory heatmap generation for visual fragmentation debugging.
+
+## v1.0.0: System Integration & Delivery
+Full runtime integration with simulation subsystems.
+- [ ] **Subsystem Integration**
+- [ ] **Cross-Platform Verification**
+- [ ] **Documentation**: API Reference generation using Doxygen.
