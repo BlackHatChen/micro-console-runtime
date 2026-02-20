@@ -1,60 +1,111 @@
-#include <iostream>
-#include <cassert>
+#include <gtest/gtest.h>
 #include "slab_allocator.h"
+#include <cstdint> // uintptr_t
 
+// Test structure (Original: 20 bytes. Aligned to 8-byte boundary: 24 bytes)
 struct TestObj {
     int id; // 4 bytes
     float value; // 4 bytes
-    float a, b, c; // 3 * 4 bytes = 12 bytes
-}; // The size of TestObj is 20 bytes (Without padding).
+    float a, b, c; // 12 bytes
+};
 
-int main() {
-    std::cout << "=== MCR Slab Allocator Test ===" << std::endl;
-    std::cout <<"Size of TestObj:" << sizeof(TestObj) << " bytes" << std::endl;
-
-    // Create a slab allocator and memory pool.
-    // The block size (20 bytes) will be aligned to 24 bytes (multiple of 8 bytes).
-    // With a pool size of 72 bytes, it could be sliced into 3 blocks (72 / 24 = 3).
+// [Test 1] Basic Allocation
+TEST(SlabAllocatorTest, BasicAllocation) {
+    // Knowing TestObj aligns to 24 bytes, we intentionally set pool_size to 72 bytes.
+    // This simulates the memory pool holding exactly 3 blocks.
     mcr::SlabAllocator allocator(sizeof(TestObj), 72);
 
-    // [Test 1] Allocate 3 blocks (Expect to succeed).
-    std::cout << "[Test 1] Allocating 3 blocks..." << std::endl;
     void* ptr1 = allocator.Allocate();
     void* ptr2 = allocator.Allocate();
     void* ptr3 = allocator.Allocate();
-    std::cout << "Ptr 1:" << ptr1 << std::endl;
-    std::cout << "Ptr 2:" << ptr2 << std::endl;
-    std::cout << "Ptr 3:" << ptr3 << std::endl;
-    assert(ptr1 != nullptr && ptr2 != nullptr && ptr3 != nullptr);
-    std::cout << "Test 1 Passed: Successfully allocated 3 blocks." << std::endl;
 
-    // [Test 2] Out Of Memory.
-    std::cout << "[Test 2] Allocating 4th block (Expected to OOM)..." << std::endl;
-    void* ptr4 = allocator.Allocate();
-    if (ptr4 == nullptr) {
-        std::cout << "Test 2 Passed: Allocation failed (Due to the memory pool is exhausted)." << std::endl;
-    } else {
-        std::cerr << "Test 2 Failed: The allocation should be failed but got " << ptr4 << std::endl;
-        return -1;
+    EXPECT_NE(ptr1, nullptr);
+    EXPECT_NE(ptr2, nullptr);
+    EXPECT_NE(ptr3, nullptr);
+
+    // Ensure all allocated addresses are unique.
+    EXPECT_NE(ptr1, ptr2);
+    EXPECT_NE(ptr2, ptr3);
+    EXPECT_NE(ptr1, ptr3);
+}
+
+// [Test 2] Capacity and Boundary
+TEST(SlabAllocatorTest, CapacityAndBoundary) {
+    // Provide a pool (60 bytes) which isn't exactly divisible by 24 bytes (TestObj's aligned size).
+    // Expect the pool can only fit two 24-byte blocks (48 bytes total).
+    // The remaining 12 bytes should be discarded.
+    mcr::SlabAllocator allocator(sizeof(TestObj), 60);
+
+    EXPECT_NE(allocator.Allocate(), nullptr);
+    EXPECT_NE(allocator.Allocate(), nullptr);
+    EXPECT_EQ(allocator.Allocate(), nullptr); // Must fail to allocate 3rd block (OOM).
+}
+
+// [Test 3] Free and Reuse (LIFO feature)
+TEST(SlabAllocatorTest, FreeAndReuse) {
+    mcr::SlabAllocator allocator(sizeof(TestObj), 72);
+
+    void* ptr1 = allocator.Allocate();
+    void* ptr2 = allocator.Allocate();
+    void* ptr3 = allocator.Allocate();
+
+    EXPECT_NE(ptr1, nullptr);
+    EXPECT_NE(ptr2, nullptr);
+    EXPECT_NE(ptr3, nullptr);
+
+    allocator.Free(ptr2); // Free the middle pointer.
+
+    void* ptr_new = allocator.Allocate();
+    EXPECT_EQ(ptr_new, ptr2); // Due to LIFO feature in the free list, it should reuse ptr2.
+}
+
+// [Test 4] Free nullptr (Edge Case)
+TEST(SlabAllocatorTest, FreeNullptr) {
+    mcr::SlabAllocator allocator(sizeof(TestObj), 72);
+
+    EXPECT_NO_FATAL_FAILURE(allocator.Free(nullptr)); // When free nullptr, it should do nothing.
+}
+
+// [Test 5] Memory Alignment (Word Alignment)
+TEST(SlabAllocatorTest, MemoryAlignment) {
+    mcr::SlabAllocator allocator(sizeof(TestObj), 72);
+
+    void* ptr = allocator.Allocate();
+    ASSERT_NE(ptr, nullptr);
+
+    uintptr_t address = reinterpret_cast<uintptr_t>(ptr);
+    EXPECT_EQ(address % sizeof(void*), 0); // Reinterpret pointer to integer to check if it's a multiple of sizeof(void*).
+}
+
+// [Test 6] Stress Test: Exhaust -> Free all -> Exhaust
+TEST(SlabAllocatorTest, StressTest) {
+    // Simulate a larger pool (2400 bytes) for exactly 100 blocks.
+    const int count = 100;
+    const size_t pool_size = 24 * count;
+    mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
+
+    std::vector<void*> ptrs;
+
+    // 1. Exhaust the memory pool.
+    for (int i = 0; i < count; i++) {
+        void* ptr = allocator.Allocate();
+        EXPECT_NE(ptr, nullptr);
+        ptrs.push_back(ptr);
     }
-    
-    // [Test 3] Free and Reuse (LIFO feature).
-    std::cout << "[Test 3] Freeing ptr2 and re-allocating..." << std::endl;
-    allocator.Free(ptr2);
-    void* ptr_test = allocator.Allocate();
-    std::cout << "New ptr:" << ptr_test << std::endl;
-    if (ptr2 == ptr_test) {
-        std::cout << "Test 3 passed: The new allocator reused the same block as ptr2." << std::endl;
-    } else {
-        std::cerr << "Test 3 failed: Expected to reuse the same block as ptr2." << std::endl;
-        return -1;
+    // Ensure the 101st allocation fails.
+    EXPECT_EQ(allocator.Allocate(), nullptr);
+
+    // 2. Free all blocks to the pool.
+    for (void* ptr : ptrs) {
+        allocator.Free(ptr);
     }
+    ptrs.clear();
 
-    // [Test 4] Free nullptr (Expect to do nothing and not crash).
-    std::cout << "[Test 4] Freeing nullptr (Expected to do nothing)..." << std::endl;
-    allocator.Free(nullptr);
-    std::cout << "Test 4 passed: Freeing nullptr did not cause any issues." << std::endl;
-
-    std::cout << "=== All tests passed successfully! ===" << std::endl;
-    return 0;
+    // 3. Exhaust again to ensure the free list is completely reset.
+    for (int i = 0; i < count; i++) {
+        void* ptr = allocator.Allocate();
+        EXPECT_NE(ptr, nullptr);
+    }
+    // Ensure the 101st allocation fails again.
+    EXPECT_EQ(allocator.Allocate(), nullptr);
 }

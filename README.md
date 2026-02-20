@@ -40,7 +40,7 @@ cmake ..
 make
 
 # 5. Run the Slab Allocator test
-./tests/test_slab_basic
+./bin/mcr_test
 
 ```
 

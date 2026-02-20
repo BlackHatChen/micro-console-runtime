@@ -1,33 +1,51 @@
 cmake_minimum_required(VERSION 3.15)
 
-# 專案基本資訊
+# Basic project information.
 project(micro-console-runtime 
-    VERSION 0.1.0
+    VERSION 0.2.0
     DESCRIPTION "High-performance C++ runtime simulation for embedded systems."
     LANGUAGES CXX
 )
 
-# 設定 C++ 標準
+# Set up the C++ standards.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF) # 停用編譯器特定的擴充功能 (保證跨平台移植性)
+set(CMAKE_CXX_EXTENSIONS OFF) # Disable compiler-specific extensions (Ensure cross-platform portability).
 
-# 輸出 compile_commands.json 以利於 C/C++ 插件正確抓到 Include 路徑
+# Output compile_commands.json to make C/C++ extension fetch include path correctly.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# 設定編譯選項：開啟所有警告，並將警告都視為錯誤 (確保代碼品質)
-if(MSVC)
-    add_compile_options(/W4 /WX) # /W4 開啟大部分警告，/WX 將警告視為錯誤
+# Enable and regard all warning as error (To ensure the code quality).
+if(MSVC) # Windows enviironment.
+    # /W4 enables most of the warning. 
+    # /WX regards warning as error.
+    add_compile_options(/W4 /WX)
 else()
-    add_compile_options(-Wall -Wextra -Werror -Wpedantic) # -Wall -Wextra 開啟大部分警告，-Wpedantic 嚴格遵守標準，-Werror 將警告視為錯誤
+    # -Wall -Wextra enable most of the warning. 
+    # -Wpedantic follows the standard strictly.
+    # -Werror regards warning as error.
+    add_compile_options(-Wall -Wextra -Werror -Wpedantic)
 endif()
 
-# 設定輸出目錄
+# Set up the output directories.
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# 添加子目錄
+# Introduce Google Test
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+)
+# Prevent overriding the project's compiler/linker settings.
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+# Enable CTest system.
+enable_testing()
+
+# Add the subdirectories.
 add_subdirectory(src)
-# add_subdirectory(tests)
+add_subdirectory(tests)
 # add_subdirectory(external)
