@@ -17,10 +17,10 @@ Foundation of the runtime environment with a deterministic memory model.
 
 ## v0.2.0: Reliability, Testing and CI
 Enhancing system stability through automated testing and continuous integration.
-- [ ] **Automated Testing Framework**
+- [x] **Automated Testing Framework**
   - Integration of **Google Test** by CMake FetchContent.
   - Unit tests coverage for `SlabAllocator` (Boundary check, edge case, OOM handling).
-- [ ] **CI/CD Pipeline Automation**
+- [x] **CI/CD Pipeline Automation**
   - **GitHub Actions workflow** for automated building and testing on Linux/Ubuntu runners.
 - [ ] **Performance Profiling**
   - Integration of **Google Benchmark**.

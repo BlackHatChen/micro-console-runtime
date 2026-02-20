@@ -1,0 +1,29 @@
+name: C++ CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository # Download the repository code.
+      uses: actions/checkout@v4
+
+    - name: Configure CMake # Generate cross-platform build files.
+      run: cmake -B ${{github.workspace}}/build
+      # -B: Create the build directory and output configuration files there.
+
+    - name: Build # Build the source code.
+      run: cmake --build ${{github.workspace}}/build --parallel
+      # --build: Automatically invoke the underlying build tool (make/ninja/msbuild)
+      # --parallel: Utilize all available CPU cores to accelerate the build.
+
+    - name: Run Unit Tests
+      working-directory: ${{github.workspace}}/build
+      run: ctest --output-on-failure
+      # --output-on-failure: Print detailed logs if the tests failed.

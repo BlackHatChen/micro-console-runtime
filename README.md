@@ -39,8 +39,13 @@ mkdir -p build && cd build
 cmake ..
 make
 
-# 5. Run the Slab Allocator test
+# 5. Run the tests
+
+# You can run the detailed unit tests by the executable:
 ./bin/mcr_test
+
+# Or run the automated test using CTest:
+ctest --output-on-failure
 
 ```
 
