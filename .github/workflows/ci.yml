@@ -15,7 +15,8 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Configure CMake # Generate cross-platform build files.
-      run: cmake -B ${{github.workspace}}/build
+      run: cmake -DCMAKE_BUILD_TYPE=Release -B ${{github.workspace}}/build
+      # -DCMAKE_BUILD_TYPE=Release: Ensure we compile with -O3 optimization.
       # -B: Create the build directory and output configuration files there.
 
     - name: Build # Build the source code.
@@ -27,3 +28,7 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: ctest --output-on-failure
       # --output-on-failure: Print detailed logs if the tests failed.
+
+    - name: Run Benchmarks
+      working-directory: ${{github.workspace}}/build
+      run: ./bin/mcr_benchmark

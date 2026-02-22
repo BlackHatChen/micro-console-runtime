@@ -32,8 +32,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# Introduce Google Test
 include(FetchContent)
+
+# Introduce Google Test
 FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
@@ -41,6 +42,17 @@ FetchContent_Declare(
 # Prevent overriding the project's compiler/linker settings.
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
+
+# Introduce Google Benchmark
+FetchContent_Declare(
+    googlebenchmark
+    URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
+)
+# Disable Benchmark built-in tests (To save CI compile time).
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+# Disable the installation rules for the Google Benchmark library.
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googlebenchmark)
 
 # Enable CTest system.
 enable_testing()

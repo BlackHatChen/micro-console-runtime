@@ -22,7 +22,7 @@ Enhancing system stability through automated testing and continuous integration.
   - Unit tests coverage for `SlabAllocator` (Boundary check, edge case, OOM handling).
 - [x] **CI/CD Pipeline Automation**
   - **GitHub Actions workflow** for automated building and testing on Linux/Ubuntu runners.
-- [ ] **Performance Profiling**
+- [x] **Performance Profiling**
   - Integration of **Google Benchmark**.
   - Throughput analysis: `SlabAllocator` vs. System `malloc`.
 
