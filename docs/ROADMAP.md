@@ -27,12 +27,16 @@ Enhancing system stability through automated testing and continuous integration.
   - Throughput analysis: `SlabAllocator` vs. System `malloc`.
 
 ## v0.3.0: Hardware Optimization & Architecture
-Low-level optimizations targeting specific hardware constraints.
-- [ ] **Cache Coherency Optimization**
-  - Enforce 64 bytes (Cache Line) alignment to prevent False Sharing.
-  - Record padding size mechanism in header for arbitrary alignment support.
-- [ ] **Standard Interface Compliance**
-  - Implement `aligned_alloc` standard interface.
+Low-level optimizations targeting specific hardware constraints and modern CPU architectures.
+- [ ] **Arbitrary Alignment Engine**
+  - Implement `aligned_alloc` standard interface for custom alignment boundaries.
+  - Record padding size mechanism in block headers to correctly resolve the original pointer during `free()`.
+- [ ] **Cache Coherency & SIMD Compatibility**
+  - Enforce 64-byte (Cache Line) alignment to prevent False Sharing in multi-core scenarios.
+  - Validate memory alignment constraints for SIMD instructions (e.g., 16-byte for NEON, 32-byte for AVX).
+- [ ] **Segregated Free Lists (Slab Classes)**
+  - Implement a `SlabManager` dispatcher to manage multiple generic size classes (e.g., 16B, 32B, 64B, 128B).
+  - O(1) size class routing to provide a generalized, fragmentation-free memory allocation interface.
 
 ## v0.4.0: Memory Safety & Debugging Tools
 Advanced diagnostics for detecting runtime memory corruption.

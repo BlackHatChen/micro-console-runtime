@@ -7,7 +7,7 @@
 ## 📖 Overview
 This project implements a lightweight runtime environment designed to simulate the strict resource constraints of modern embedded devices. It focuses on deterministic memory management, cache coherency, and system-level reliability, mirroring the architecture of embedded systems and RTOS (Real-Time Operating Systems).
 
-**Current Status**: `v0.1.0` (Core Infrastructure & Allocator)
+**Current Status**: `v0.2.0` completed. In progress: `v0.3.0` (Hardware Optimization & Architecture).
 
 ## ✨ Key Features
 * **Deterministic Memory Model**: Custom `SlabAllocator` eliminates external fragmentation and ensures predictable allocation latency (O(1) time complexity).
