@@ -109,3 +109,54 @@ TEST(SlabAllocatorTest, StressTest) {
     // Ensure the 101st allocation fails again.
     EXPECT_EQ(allocator.Allocate(), nullptr);
 }
+
+// [Test 7] SIMD Alignment (AVX - 32 bytes boundary)
+TEST(SlabAllocatorTest, SIMDAlignment32) {
+    // Request 32-byte alignment.
+    // Pool size: 100 bytes. Should fit exactly 3 blocks (96 bytes).
+    mcr::SlabAllocator allocator(sizeof(TestObj), 100, 32);
+
+    void* ptr1 = allocator.Allocate();
+    void* ptr2 = allocator.Allocate();
+
+    ASSERT_NE(ptr1, nullptr);
+    ASSERT_NE(ptr2, nullptr);
+
+    uintptr_t addr1 = reinterpret_cast<uintptr_t>(ptr1);
+    uintptr_t addr2 = reinterpret_cast<uintptr_t>(ptr2);
+
+    // Verify the starting addresses are multiples of 32.
+    EXPECT_EQ(addr1 % 32, 0);
+    EXPECT_EQ(addr2 % 32, 0);
+
+    // Verify the distance between contiguous blocks is exactly 32 bytes.
+    std::ptrdiff_t distance = std::abs(static_cast<std::ptrdiff_t>(addr2 - addr1));
+    EXPECT_EQ(distance, 32);
+}
+
+// [Test 8] Cache Line Alignment (64 bytes boundary to prevent False Sharing)
+TEST(SlabAllocatorTest, CacheLineAlignment64) {
+    // Request 64-byte alignment.
+    // Pool size: 200 bytes. Should fit exactly 3 blocks (192 bytes).
+    mcr::SlabAllocator allocator(sizeof(TestObj), 200, 64);
+
+    void* ptr = allocator.Allocate();
+    ASSERT_NE(ptr, nullptr);
+
+    uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+    EXPECT_EQ(addr % 64, 0);
+}
+
+// [Test 9] Exception: Invalid Alignment (Not a power of 2)
+TEST(SlabAllocatorTest, InvalidAlignmentException) {
+    EXPECT_THROW({
+        mcr::SlabAllocator allocator(sizeof(TestObj), 100, 17);
+    }, std::invalid_argument);
+}
+
+// [Test 10] Exception: Insufficient Pool Size for Aligned Block
+TEST(SlabAllocatorTest, InsufficientAlignedPoolSizeException) {
+    EXPECT_THROW({
+        mcr::SlabAllocator allocator(sizeof(TestObj), 60, 64);
+    }, std::invalid_argument);
+}

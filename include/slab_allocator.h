@@ -15,9 +15,17 @@ namespace mcr {
     class SlabAllocator {
     public:
         /**
-         * @brief Construct the allocator with a fixed-size blocks and total pool size.
+         * @brief Construct the allocator with a fixed-size blocks, total pool size, and specific alignment.
+         * 
+         * By enforcing alignment at the pool initialization stage, 
+         * we preserve O(1) allocate/free and eliminate the need for per-block metadata (header).
+         * 
+         * [Ref] CSAPP Chapter 3.9.3 (Data Alignment)
+         * @param block_size The requested minimum size of each memory block.
+         * @param pool_size The total size of the memory pool to request from the OS.
+         * @param alignment The memory alignment (Must be a power of 2), defaults to a word size.
          */
-        SlabAllocator(std::size_t block_size, std::size_t pool_size);
+        SlabAllocator(std::size_t block_size, std::size_t pool_size, std::size_t alignment = sizeof(void*));
 
         /**
          * @brief Destroy the allocator and free all allocated memory.
@@ -28,6 +36,8 @@ namespace mcr {
          * @brief Allocate a single fixed-size memory block from the pool.
          * 
          * Guarantees O(1) time complexity by popping a free block from the head of the free list.
+         * 
+         * The returned address is aligned to the `alignment` specified in the constructor.
          * 
          * @return void* pointer to the allocated memory, or nullptr if the pool is exhausted.
          */
@@ -63,6 +73,7 @@ namespace mcr {
         
         std::size_t block_size_;
         std::size_t pool_size_;
+        std::size_t alignment_;
         void* pool_start_;
         FreeBlock* free_list_head_;
     };

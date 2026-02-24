@@ -28,10 +28,10 @@ Enhancing system stability through automated testing and continuous integration.
 
 ## v0.3.0: Hardware Optimization & Architecture
 Low-level optimizations targeting specific hardware constraints and modern CPU architectures.
-- [ ] **Arbitrary Alignment Engine**
-  - Implement `aligned_alloc` standard interface for custom alignment boundaries.
-  - Record padding size mechanism in block headers to correctly resolve the original pointer during `free()`.
-- [ ] **Cache Coherency & SIMD Compatibility**
+- [x] **Arbitrary Alignment Engine**
+  - Enforce custom alignment boundaries at the Pool initialization stage.
+  - Implement cross-platform OS-level aligned memory APIs (`_aligned_malloc` for Windows, `posix_memalign` for POSIX).
+- [x] **Cache Coherency & SIMD Compatibility**
   - Enforce 64-byte (Cache Line) alignment to prevent False Sharing in multi-core scenarios.
   - Validate memory alignment constraints for SIMD instructions (e.g., 16-byte for NEON, 32-byte for AVX).
 - [ ] **Segregated Free Lists (Slab Classes)**
