@@ -34,7 +34,7 @@ Low-level optimizations targeting specific hardware constraints and modern CPU a
 - [x] **Cache Coherency & SIMD Compatibility**
   - Enforce 64-byte (Cache Line) alignment to prevent False Sharing in multi-core scenarios.
   - Validate memory alignment constraints for SIMD instructions (e.g., 16-byte for NEON, 32-byte for AVX).
-- [ ] **Segregated Free Lists (Slab Classes)**
+- [x] **Segregated Free Lists (Slab Classes)**
   - Implement a `SlabManager` dispatcher to manage multiple generic size classes (e.g., 16B, 32B, 64B, 128B).
   - O(1) size class routing to provide a generalized, fragmentation-free memory allocation interface.
 
