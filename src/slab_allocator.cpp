@@ -1,6 +1,7 @@
 #include "slab_allocator.h"
 #include <algorithm> // for std::max
 #include <cstdlib>   // for std::malloc and std::free
+#include <cstdint> // for uintptr_t
 #include <stdexcept> // for std::bad_alloc, std::invalid_argument
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -55,7 +56,7 @@ namespace mcr {
         // (Set last block's next pointer to nullptr.)
         // (We use char* for pointer arithmetic.)
         free_list_head_ = static_cast<FreeBlock*>(pool_start_);
-        char* current_byte_ptr = static_cast<char*>(pool_start_);
+        uintptr_t current_byte_ptr = reinterpret_cast<uintptr_t>(pool_start_);
         for (std::size_t i = 0; i < block_count - 1; i++)
         {
             FreeBlock* current_block = reinterpret_cast<FreeBlock*>(current_byte_ptr);
@@ -78,7 +79,7 @@ namespace mcr {
 
     void* SlabAllocator::Allocate() {
         // If the memory pool is exhausted, return nullptr and do nothing.
-        if (free_list_head_ == nullptr) {
+        if (!free_list_head_) {
             return nullptr;
         }
         
@@ -90,7 +91,7 @@ namespace mcr {
 
     void SlabAllocator::Free(void* ptr) {
         // If the free pointer is nullptr, do nothing. 
-        if (ptr == nullptr) {
+        if (!ptr) {
             return;
         }
 

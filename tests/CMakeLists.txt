@@ -1,7 +1,10 @@
 # Google Test Settings
-add_executable(mcr_test test_slab_basic.cpp)
+add_executable(mcr_test 
+    test_slab.cpp
+    test_manager.cpp
+)
 target_link_libraries(mcr_test PRIVATE mcr_core gtest_main)
-add_test(NAME SlabAllocatorTest COMMAND mcr_test) # Register the test to make CTest fetch it.
+add_test(NAME AllMemoryCoreTests COMMAND mcr_test) # Register the test to make CTest fetch it.
 
 # Google Benchmark Settings
 add_executable(mcr_benchmark benchmark_slab.cpp)
