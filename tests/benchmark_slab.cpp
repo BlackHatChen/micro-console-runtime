@@ -4,14 +4,14 @@
 
 namespace {
     constexpr std::size_t kObjectSize = 24;
-    constexpr std::size_t kBatchSize = 1000; // Batch allocate/free memory counts.
+    constexpr std::size_t kBatchSize = 1000;
 
-    // Benchmark 1: OS standard library std::malloc / std::free
+    // Benchmark 1: OS Standard Library (malloc / free)
     void BM_SystemMalloc(benchmark::State& state) {
         std::vector<void*> pointers;
         pointers.reserve(kBatchSize);
 
-        // State loop will decide how many times should run until get the stable analysis data.
+        // State loop decides how many times should run until get the stable analysis data.
         for (auto _ : state) {
             // Batch allocate.
             for (std::size_t i = 0; i < kBatchSize; i++) {
@@ -47,14 +47,16 @@ namespace {
                 pointers.push_back(ptr);
             }
             
-            // Batch free.
+            // Batch deallocate.
             for (void* ptr : pointers) {
                 allocator.Free(ptr);
             }
             pointers.clear();
         }
     }
+    // Register the test.
     BENCHMARK(BM_SlabAllocator);
 }
 
-BENCHMARK_MAIN(); // main function macro provided by Google Benchmark.
+// Main function macro provided by Google Benchmark.
+BENCHMARK_MAIN(); 

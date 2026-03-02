@@ -10,11 +10,14 @@ This project implements a lightweight runtime environment designed to simulate t
 **Current Status**: `v0.3.0` completed. In progress: `v0.4.0` (Memory Safety & Debugging Tools).
 
 ## ✨ Key Features
-* **Deterministic Memory Model**: Custom `SlabAllocator` eliminates external fragmentation and ensures predictable allocation latency (O(1) time complexity).
-  * *Performance*: Achieved **~3x throughput improvement** (2.96x speedup) over standard `std::malloc` in high-frequency small object allocation benchmarks (tested by Google Benchmark).
-* **Hardware-Aware Design**: Enforces strict memory alignment suitable for RISC architectures (e.g., ARM Cortex-A/R series commonly used in automotive and consumer electronics).
-* **Reliability**: Built with strict RAII compliance and modern C++17 standards to prevent memory leaks and undefined behaviors.
-* **Reproducibility**: Fully Dockerized development environment for consistent cross-platform builds and CI/CD integration.
+* **Deterministic Memory Model**: Custom `SlabAllocator` and `SlabManager` (Segregated Free Lists) eliminate external fragmentation and ensure predictable allocation in O(1) time.
+  * *Performance*: Achieve **~4.1x throughput improvement** (4.03x speedup) over standard `std::malloc` in high-frequency small object allocation benchmarks (tested by Google Benchmark).
+* **Hardware-Aware & Branchless Design**: 
+  * Implement O(1) size class routing using hardware bit-scan instructions (`__builtin_clzll` / `_BitScanReverse`).
+  * Enforce arbitrary memory alignment (e.g., AVX 32-byte, Cache-Line 64-byte) for SIMD operations and RISC architectures.
+* **Zero Metadata Overhead**: Use C++14 Sized Deallocation semantics (`operator delete(void*, std::size_t)`) to completely eliminate header padding, maximizing memory density.
+* **Reliability & Safety**: Build with RAII (`std::make_unique`, `std::array`) and modern C++17 standards to prevent memory leaks. Cross-platform OS API integration (`_aligned_malloc` / `posix_memalign`) ensures safe aligned memory boundaries.
+* **Reproducibility**: Fully Dockerized development environment for consistent cross-platform builds and CI/CD integration via GitHub Actions.
 
 ## 📊 Performance Benchmark
 
@@ -28,10 +31,10 @@ Benchmarks were conducted using [Google Benchmark](https://github.com/google/ben
 
 | Benchmark | Time | CPU | Iterations |
 | :--- | :--- | :--- | :--- |
-| `BM_SystemMalloc` | 7524 ns | 7542 ns | 92,716 |
-| `BM_SlabAllocator` | 2540 ns | 2545 ns | 276,917 |
+| `BM_SystemMalloc` | 8171 ns | 7954 ns | 86,163 |
+| `BM_SlabAllocator` | 2025 ns | 1971 ns | 353,274 |
 
-*Analysis: The custom `SlabAllocator` achieves a **~2.96x speedup** in CPU time and processes roughly **3x more iterations** within the same time window compared to a general-purpose allocator. This proves the extreme efficiency of its O(1) embedded free list design in constrained scenarios.*
+*Analysis: The custom `SlabAllocator` achieves a **~4.03x speedup** in CPU time and processes roughly **4.1x more iterations** within the same time window compared to a general-purpose allocator. This proves the extreme efficiency of its O(1) embedded free list design and branchless routing in constrained scenarios.*
 
 ## 🚀 Quick Start (Recommended)
 
@@ -56,8 +59,18 @@ docker run --rm -it -v $(pwd):/app micro-runtime-env
 
 # 4. Build the project
 mkdir -p build && cd build
+
+# You can build the Makefile with Debug Mode.
 cmake ..
+
+# Or with -O3 optimization (Release Mode).
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# You can compile the codes with default settings.
 make
+
+# Or compile in parallel with multi-threads.
+make -j$(nproc)
 
 # 5. Run the tests
 

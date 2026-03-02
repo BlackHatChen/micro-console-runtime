@@ -57,13 +57,15 @@ TEST(SlabManagerTest, OverAlignmentRouting) {
 TEST(SlabManagerTest, SizeDeallocation) {
     mcr::SlabManager manager;
 
-    void* ptr1 = manager.Allocate(40); // It will be routed to 64-byte pool.
+    // It will be routed to 64-byte pool.
+    void* ptr1 = manager.Allocate(40);
 
     // Free it and request another same size allocation (Route to 64-byte pool again).
     manager.Free(ptr1, 40);
     void* ptr2 = manager.Allocate(40);
 
-    EXPECT_EQ(ptr1, ptr2); // Because of LIFO free list feature, they will use the same address.
+    // Because of LIFO free list feature, they will use the same address.
+    EXPECT_EQ(ptr1, ptr2); 
 }
 
 // [Test 4] Exceeding Maximum Class Size

@@ -8,18 +8,18 @@
 
 namespace mcr {
     /**
-     * @brief Manage multiple size classes of SlabAllocators.
+     * @brief Manage multiple size classes of SlabAllocator.
      * 
-     * Implements Segregated Free Lists to handle variable-sized allocations.
+     * Implement Segregated Free Lists to handle variable-sized allocations.
      * 
      * [Ref] OSTEP Chapter 17 (Free-Space Management) - Segregated Lists.
      */
     class SlabManager {
     public:
         /**
-         * @brief Construct with predefined size classes.
+         * @brief Construct with predefined general size classes.
          * 
-         * It will initialize multiple SlabAllocators (Ex: 16B, 32B, 64B...).
+         * It will initialize multiple SlabAllocators (Ex: 16, 32, 64 bytes...).
          */
         SlabManager();
 
@@ -35,18 +35,18 @@ namespace mcr {
          * 
          * @param size The requested memory size.
          * @param alignment The requested alignment (Default to a word size).
-         * @return void* pointer to the allocated memory, or nullptr if the pool is exhausted 
-         * or the required size exceeds the maximum managed class.
+         * @return Pointer to the allocated memory address 
+         * (nullptr if the pool is exhausted / the required size exceeds the maximum size.)
          */
         void* Allocate(std::size_t size, std::size_t alignment = sizeof(void*));
 
         /**
-         * @brief Free memory back to the correct size class pool.
+         * @brief Free memory back to the correct size class.
          * 
          * Utilizes C++14 Sized Deallocation semantics to avoid metadata headers.
-         * The caller provides the size to allow O(1) route back to the correct pool.
+         * Provide the size to allow O(1) route back to the correct pool.
          * 
-         * @param ptr Pointer to the memory to free.
+         * @param ptr Pointer to the memory to be freed.
          * @param size The size originally requested, for routing back to the correct pool.
          */
         void Free(void* ptr, std::size_t size);
@@ -58,8 +58,12 @@ namespace mcr {
     private:
         // Define the size classes (Powers of 2, from 16 to 1024 bytes).
         static constexpr std::size_t kNumClasses = 7;
-        static constexpr std::size_t kMinClassSize = 16; // Data (8-byte) + Address (8-byte)
-        static constexpr std::size_t kMaxClassSize = 1024; // Less than a page size (4KB). The slab allocator is for the small size objects.
+
+        // Data (8-byte) + Address (8-byte)
+        static constexpr std::size_t kMinClassSize = 16;
+
+        // Less than a page size (4KB). The slab allocator is for the small size objects.
+        static constexpr std::size_t kMaxClassSize = 1024; 
         
         // Array of unique_ptr to manage the lifecycle of the allocators.
         // [Ref] Effective C++ Item 13 (Use object to manage resources).

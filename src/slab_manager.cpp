@@ -2,12 +2,11 @@
 #include <stdexcept>
 
 #if defined(_WIN32) || defined(_WIN64)
-    #include <intrin.h>
+    #include <intrin.h> // for _BitScanReverse
 #endif
 
 namespace mcr {
     SlabManager::SlabManager() {
-        // Initialize Segregated Free Lists
         // Sizes: 16, 32, 64, 128, 256, 512, 1024 bytes
         std::size_t current_block_size = kMinClassSize;
         for (std::size_t i = 0; i < kNumClasses; i++) {
@@ -30,16 +29,17 @@ namespace mcr {
         }
 
         // O(1) Size Routing (Using CLZ/BSR instructions)
-        std::size_t s = size - 1; // Ensure the size wouldn't be pushed into the next class when it's powers of 2.
+        // Ensure the size wouldn't be pushed into the next class when it's powers of 2.
+        std::size_t s = size - 1;
         unsigned long highest_bit_index = 0;
-#if defined(_WIN32) || defined(_WIN64) // MSVC: BSR
-    #ifdef _WIN64
+#if defined(_WIN32) || defined(_WIN64)
+    #ifdef _WIN64 // BSR: Scan from left to right for the first 1 and return its index position.
         _BitScanReverse64(&highest_bit_index, s);
     #else
         _BitScanReverse(&highest_bit_index, s);
     #endif
 #else
-        // CLZ: Return the count of the leading zeros.
+        // CLZ: Return the count of leading zeros.
         // Calculate the index of the highest bit = (64 - 1) - CLZ.
         highest_bit_index = 63 - __builtin_clzll(static_cast<unsigned long long>(s));
 #endif
@@ -65,7 +65,7 @@ namespace mcr {
             return;
         }
         
-        // Rely on C++14 Sized Deallocation input size to route back to the correct size allocator.
+        // Rely on input size to route back to the correct size allocator.
         std::size_t class_idx = GetClassIndex(size);
         allocators_[class_idx]->Free(ptr);
     }
