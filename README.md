@@ -49,6 +49,16 @@ The easiest way to build and run the project is using the provided Docker enviro
 git clone https://github.com/BlackHatChen/micro-console-runtime.git
 cd micro-console-runtime
 
+# 1.5 Developer Setup (Recommended)
+# Enable Git hooks for consistent commit message enforcement across machines.
+
+# Option A: one-shot setup script
+bash scripts/setup-dev.sh
+
+# Option B: manual setup
+git config core.hooksPath .githooks
+chmod +x .githooks/commit-msg
+
 # 2. Build the Docker environment
 docker build -t micro-runtime-env .
 
