@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(micro-console-runtime 
-    VERSION 0.2.0
+    VERSION 0.3.0
     DESCRIPTION "High-performance C++ runtime simulation for embedded systems."
     LANGUAGES CXX
 )

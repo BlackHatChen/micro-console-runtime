@@ -10,7 +10,7 @@ target_link_libraries(mcr_test
 )
 
 # Register the test to make CTest fetch it.
-add_test(NAME AllMemoryCoreTests COMMAND mcr_test)
+add_test(NAME AllMemoryCoreTests COMMAND $<TARGET_FILE:mcr_test>)
 
 # ----------------------------------------------------------------
 
