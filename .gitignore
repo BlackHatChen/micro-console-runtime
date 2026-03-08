@@ -1,5 +1,7 @@
 # Build directories
 build/
+Build/
+build-*/
 out/
 bin/
 lib/
@@ -12,6 +14,15 @@ lib/
 .DS_Store
 Thumbs.db
 
-# CMake generated
+# CMake generated (should live only in build dir, but ignore defensively)
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
 compile_commands.json
 CMakeUserPresets.json
+CMakeLists.txt.user
+_deps/
+Testing/
+.cache/

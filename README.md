@@ -70,7 +70,7 @@ docker run --rm -it -v $(pwd):/app micro-runtime-env
 # 4. Build the project
 mkdir -p build && cd build
 
-# You can build the Makefile with Debug Mode.
+# You can build the Makefile with Default build type.
 cmake ..
 
 # Or with -O3 optimization (Release Mode).
