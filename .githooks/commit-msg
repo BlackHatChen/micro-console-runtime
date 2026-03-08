@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+COMMIT_MSG_FILE="$1"
+
+# ------------------------------------------------------------
+# Allow auto-generated messages
+# ------------------------------------------------------------
+# Git/GitHub may generate messages like:
+#   "Merge branch 'xxx' ..."
+#   "Revert \"...\""
+# We allow them without enforcing the conventional header rule.
+FIRST_LINE_RAW="$(head -n 1 "$COMMIT_MSG_FILE" || true)"
+if [[ "$FIRST_LINE_RAW" =~ ^Merge[[:space:]] ]] || [[ "$FIRST_LINE_RAW" =~ ^Revert[[:space:]] ]]; then
+  exit 0
+fi
+
+# ------------------------------------------------------------
+# Find the effective header line
+# ------------------------------------------------------------
+# Use the first non-empty, non-comment line as the header.
+# This keeps the hook compatible with commit templates (.gitmessage),
+# which often start with comment lines.
+HEADER_LINE=""
+HEADER_LINE_NO=0
+LINE_NO=0
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+  ((++LINE_NO))
+  # skip comments and empty lines
+  if [[ "$line" =~ ^# ]]; then
+    continue
+  fi
+  if [[ -z "$line" ]]; then
+    continue
+  fi
+  HEADER_LINE="$line"
+  HEADER_LINE_NO=$LINE_NO
+  break
+done < "$COMMIT_MSG_FILE"
+
+if [[ -z "$HEADER_LINE" ]]; then
+  echo "❌ Error: Commit message is empty (no header line found)."
+  echo "Hint: The header must be the first non-empty non-comment line."
+  exit 1
+fi
+
+# ------------------------------------------------------------
+# Header rule
+# ------------------------------------------------------------
+# Format: <type>(<scope>): <subject>
+# Subject length: 1..50 characters
+#
+# Types:
+#   mm, alloc, lock, feat, fix, perf, refactor, test, docs, ci
+#
+# Scopes:
+#   Allocator: buddy, slab, arena, freelist, gc, os, sync, api, align
+#   Concurrency: ring, zerocopy, watchdog, telemetry
+#   Simulation: ecs, timestep, simd, hal, loop
+REGEX="^(mm|alloc|lock|feat|fix|perf|refactor|test|docs|ci)(\((buddy|slab|arena|freelist|gc|os|sync|api|align|ring|zerocopy|watchdog|telemetry|ecs|timestep|simd|hal|loop)\))?: .{1,50}$"
+
+if ! [[ "$HEADER_LINE" =~ $REGEX ]]; then
+  echo "❌ Error: Commit message header does not follow system standards."
+  echo "Format: <type>(<scope>): <subject>"
+  echo "Valid types: mm, alloc, lock, feat, fix, perf, refactor, test, docs, ci"
+  echo "Valid scopes:"
+  echo "buddy, slab, arena, freelist, gc, os, sync, api, align, ring, zerocopy, watchdog, telemetry, ecs, timestep, simd, hal, loop"
+  echo "Subject length: max 50 chars"
+  echo "------------------------------------------------"
+  echo "Your header (line $HEADER_LINE_NO): $HEADER_LINE"
+  exit 1
+fi
+
+# ------------------------------------------------------------
+# Blank line after header
+# ------------------------------------------------------------
+# Rule: the line immediately after the header must be empty.
+# We allow comment lines too.
+NEXT_LINE_NO=$((HEADER_LINE_NO + 1))
+NEXT_LINE="$(sed -n "${NEXT_LINE_NO}p" "$COMMIT_MSG_FILE" || true)"
+if [[ -n "$NEXT_LINE" ]] && [[ ! "$NEXT_LINE" =~ ^# ]]; then
+  echo "❌ Error: The line after header must be empty (or a comment)."
+  echo "Header is at line $HEADER_LINE_NO."
+  echo "Line $NEXT_LINE_NO should be empty."
+  exit 1
+fi
+
+
+# ------------------------------------------------------------
+# Require body for selected types
+# ------------------------------------------------------------
+# Enforce body (non-empty, non-comment): mm, alloc, lock, feat, fix, perf
+# Allow body to be omitted: docs, test, ci, refactor
+TYPE="${HEADER_LINE%%(*}"
+TYPE="${TYPE%%:*}"
+REQUIRE_BODY=0
+case "$TYPE" in
+  mm|alloc|lock|feat|fix|perf)
+    REQUIRE_BODY=1
+    ;;
+esac
+
+if [[ $REQUIRE_BODY -eq 1 ]]; then
+  HAS_BODY=0
+  START_LINE=$((HEADER_LINE_NO + 2))
+  # Scan from the first line after the mandatory blank line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    # Skip comment lines
+    if [[ "$line" =~ ^# ]]; then
+      continue
+    fi
+    # Skip empty lines
+    if [[ -z "$line" ]]; then
+      continue
+    fi
+    HAS_BODY=1
+    break
+  done < <(tail -n +"$START_LINE" "$COMMIT_MSG_FILE")
+
+  if [[ $HAS_BODY -eq 0 ]]; then
+    echo "❌ Error: Commit body is required for type '$TYPE'."
+    echo "Hint: Add a short body after the blank line (e.g., Why/How/Verify)."
+    exit 1
+  fi
+fi
+
+# ------------------------------------------------------------
+# Body line length (warning only)
+# ------------------------------------------------------------
+# Warn if any non-comment, non-URL line exceeds 72 characters.
+LINE_NO=0
+while IFS= read -r line || [[ -n "$line" ]]; do
+  ((++LINE_NO))
+  # Skip everything up to (and including) the header line
+  if [[ $LINE_NO -le $HEADER_LINE_NO ]]; then
+    continue
+  fi
+  # Skip comment lines
+  if [[ "$line" =~ ^# ]]; then
+    continue
+  fi
+  # Ignore URLs in the 72-char warning check
+  if [[ ${#line} -gt 72 ]] && [[ ! "$line" =~ http ]]; then
+    echo "⚠️  Warning: Line $LINE_NO in body exceeds 72 characters."
+    echo "Content: ${line:0:60}..."
+  fi
+done < "$COMMIT_MSG_FILE"
+
+exit 0
