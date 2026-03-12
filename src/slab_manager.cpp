@@ -1,5 +1,6 @@
 #include "slab_manager.h"
 #include <stdexcept>
+#include <algorithm>
 
 #if defined(_WIN32) || defined(_WIN64)
     #include <intrin.h> // for _BitScanReverse
@@ -50,23 +51,26 @@ namespace mcr {
     }
 
     void* SlabManager::Allocate(std::size_t size, std::size_t alignment) {
-        if (size > kMaxClassSize) {
-            return nullptr;
-        }
-        
         // Ensure the target block size could satisfy both size and alignment.
         std::size_t target_size = std::max(size, alignment);
+        if (target_size > kMaxClassSize) {
+            return nullptr;
+        }
         std::size_t class_idx = GetClassIndex(target_size);
         return allocators_[class_idx]->Allocate();
     }
 
-    void SlabManager::Free(void* ptr, std::size_t size) {
+    void SlabManager::Free(void* ptr, std::size_t size, std::size_t alignment) {
         if (!ptr) {
             return;
         }
         
-        // Rely on input size to route back to the correct size allocator.
-        std::size_t class_idx = GetClassIndex(size);
+        // Route back using the same policy as Allocate().
+        std::size_t target_size = std::max(size, alignment);
+        if (target_size > kMaxClassSize) {
+            return;
+        }
+        std::size_t class_idx = GetClassIndex(target_size);
         allocators_[class_idx]->Free(ptr);
     }
 }

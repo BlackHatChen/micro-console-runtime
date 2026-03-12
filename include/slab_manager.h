@@ -43,13 +43,13 @@ namespace mcr {
         /**
          * @brief Free memory back to the correct size class.
          * 
-         * Utilizes C++14 Sized Deallocation semantics to avoid metadata headers.
-         * Provide the size to allow O(1) route back to the correct pool.
+         * Free requires (size, alignment) to route back in O(1) without per-allocation metadata.
          * 
          * @param ptr Pointer to the memory to be freed.
-         * @param size The size originally requested, for routing back to the correct pool.
+         * @param size The requested size (Same value used at allocation site).
+         * @param alignment The requested alignment (Same value used at allocation site).
          */
-        void Free(void* ptr, std::size_t size);
+        void Free(void* ptr, std::size_t size, std::size_t alignment = sizeof(void*));
 
         // Disable copy semantics to prevent Double Free of the entire manager.
         SlabManager(const SlabManager&) = delete;
