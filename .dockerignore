@@ -1,3 +1,94 @@
+# =========================
+# VCS / meta
+# =========================
 .git
-build/
-.vscode/
+.gitattributes
+.gitignore
+.githooks/
+.github/
+
+# =========================
+# Build directories
+# =========================
+/build/
+/Build/
+/build-*/
+/out/
+/_builds/
+/cmake-build-*/
+/bin/
+/lib/
+
+# =========================
+# CMake generated files
+# (defensive: prevent accidental in-source build artifacts)
+# =========================
+/CMakeLists.txt.user
+/CMakeCache.txt
+/CMakeFiles/
+/CMakeScripts/
+/cmake_install.cmake
+/install_manifest.txt
+/CTestTestfile.cmake
+/Testing/
+/Makefile
+/_deps/
+/compile_commands.json
+/CMakeUserPresets.json
+
+# =========================
+# Compiler / linker outputs
+# =========================
+*.d
+*.o
+*.obj
+*.lo
+*.slo
+*.a
+*.la
+*.lai
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+*.ilk
+*.pdb
+*.dwo
+*.lib
+*.exp
+
+# Precompiled headers
+*.gch
+*.pch
+
+# =========================
+# Temporary / cache / OS files
+# =========================
+*.tmp
+*.log
+*.bak
+*.swp
+*~
+.cache/
+.DS_Store
+Thumbs.db
+*.gcno
+*.gcda
+
+# =========================
+# Package manager outputs
+# =========================
+/vcpkg_installed/
+
+# =========================
+# IDE / local-only files
+# =========================
+/.idea/
+/.vs/
+
+# If you do NOT want to share VS Code workspace settings,
+# uncomment the next line:
+/.vscode/

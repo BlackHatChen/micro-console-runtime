@@ -12,28 +12,48 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BUILD_DIR: ${{ github.workspace }}/build
+      BUILD_DIR_REL: ${{ github.workspace }}/build-rel
 
     steps:
     - name: Checkout Repository # Download the repository code.
       uses: actions/checkout@v4
 
-    - name: Configure CMake # Generate cross-platform build files.
-      run: cmake -S ${{ github.workspace }} -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE=Release
+    - name: Configure (Debug) # Generate build files for tests.
+      run: cmake -S ${{ github.workspace }} -B ${{ env.BUILD_DIR }} -DCMAKE_BUILD_TYPE=Debug
       # -S: Assign the current directory to the source file.
       # -B: Create the build directory and output configuration files there.
-      # -DCMAKE_BUILD_TYPE=Release: Ensure we compile with -O3 optimization.
+      # -DCMAKE_BUILD_TYPE=Debug: Match README flow for unit tests.
 
-    - name: Build # Build the source code.
+    - name: Build (Debug) # Build the source code for tests.
       run: cmake --build ${{ env.BUILD_DIR }} --parallel
       # --build: Automatically invoke the underlying build tool (make/ninja/msbuild)
       # --parallel: Utilize all available CPU cores to accelerate the build.
 
     - name: Run Unit Tests
+      id: unit_tests
       working-directory: ${{ env.BUILD_DIR }}
       run: ctest --output-on-failure
       # --output-on-failure: Print detailed logs if the tests failed.
 
+    - name: Upload CTest logs (on failure)
+      if: failure() && steps.unit_tests.outcome == 'failure'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ctest-logs
+        path: ${{ env.BUILD_DIR }}/Testing/Temporary/LastTest.log
+        if-no-files-found: ignore
+        retention-days: 7
+
+    # Benchmarks (Release build; separate dir as in README)
+    - name: Configure (Release for benchmarks)
+      if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      run: cmake -S ${{ github.workspace }} -B ${{ env.BUILD_DIR_REL }} -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build (Release for benchmarks)
+      if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      run: cmake --build ${{ env.BUILD_DIR_REL }} --parallel
+
     - name: Run Benchmarks
       if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-      working-directory: ${{ env.BUILD_DIR }}
+      working-directory: ${{ env.BUILD_DIR_REL }}
       run: ./bin/mcr_benchmark
