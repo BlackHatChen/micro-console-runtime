@@ -1,42 +1,81 @@
 # Micro Console Runtime - Engineering Roadmap
-The project simulates a constrained embedded runtime environment.
-This document outlines the development milestones for the project.
+- This roadmap lists version goals and acceptance for v0.x and the final integration at v1.0.0.
+- **Scope (v0.x):** memory subsystem (allocator + tests/benchmark/CI/tooling); other subsystems are planned (not delivered yet).
+- See [README → Current Status](../README.md#current-status). Commands live in [README → Quick Start](../README.md#quick-start).
 
 ## v0.1.0: Core Infrastructure & Allocator
-Foundation of the runtime environment with a deterministic memory model.
-- [x] **Build System & Environment**
-  - Project structure design (src, include, tests, docs).
-  - CMake-based build system with enforced compiler flags (`-Wall -Wextra -Werror`).
-  - Dockerized development container for reproducible builds.
-- [x] **Quality Control Hooks**
-  - Git Hooks infrastructure and commit template for enforcing Conventional Commits.
-- [x] **Slab Allocator Implementation**
-  - Fixed-size block partitioning strategies.
-  - O(1) allocation/free time complexity (Using embedded free lists).
-  - Memory alignment (Aligned to a word size).
+**Goal:** Make the build reproducible and provide a minimal slab allocator.
 
-## v0.2.0: Reliability, Testing and CI
-Enhancing system stability through automated testing and continuous integration.
-- [x] **Automated Testing Framework**
-  - Integration of **Google Test** by CMake FetchContent.
-  - Unit tests coverage for `SlabAllocator` (Boundary check, edge case, OOM handling).
-- [x] **CI/CD Pipeline Automation**
-  - **GitHub Actions workflow** for automated building and testing on Linux/Ubuntu runners.
-- [x] **Performance Profiling**
-  - Integration of **Google Benchmark**.
-  - Throughput analysis: `SlabAllocator` vs. System `malloc`.
+**Why/Context:** Keep the base stable so later changes remain traceable.
+- [x] **Build System & Environment**
+  - Project structure (src, include, tests, docs).
+  - Modern CMake with strict warnings.
+  - Docker image for reproducible builds.
+- [x] **Quality Control Hooks**
+  - Git hooks and a commit message template.
+- [x] **Slab Allocator**
+  - Fixed-size blocks with embedded free lists (O(1) allocate/free).
+  - **Historical alignment:** `sizeof(void*)`.
+
+**Acceptance**
+- Configure and build via CMake on the reference host (see [README → Quick Start](../README.md#quick-start)).
+- Allocator public API is present (O(1) allocate/free).
+- Commit template/hooks are available from v0.1.0.
+
+**References**
+- [README → Quick Start](../README.md#quick-start)
+- [Dockerfile](../Dockerfile)
+- [Header](../include/slab_allocator.h)
+- [Source](../src/slab_allocator.cpp)
+
+## v0.2.0: Reliability, Tests, and CI
+**Goal:** Introduce automated tests, CI, and a benchmark method.
+
+**Why/Context:** Make changes verifiable and prevent regressions.
+- [x] **Unit Tests (GoogleTest)**
+  - Cover the allocator's basic contract (allocate/free) success, OOM, and boundary cases.
+- [x] **CI Pipeline**
+  - GitHub Actions workflow builds and runs tests on a Linux runner.
+- [x] **Benchmark (Google Benchmark)**
+  - Release-mode benchmark that compares the slab allocator vs `malloc` on a default small-object workload.
+
+**Acceptance**
+- CI green on a clean Linux runner: configure, build, and run tests using the commands in [README → Quick Start](../README.md#quick-start).
+- Unit tests cover: success path, OOM behavior, and boundary conditions.
+- A release benchmark (Google Benchmark) runs and reports results; on the same machine and the default workload, slab is faster than `malloc`.
+
+**References**
+- [README → Quick Start](../README.md#quick-start)
+- [CI](../.github/workflows/ci.yml)
+- [Tests](../tests/test_slab.cpp)
+- [Benchmark](../tests/benchmark_slab.cpp)
 
 ## v0.3.0: Hardware Optimization & Architecture
-Low-level optimizations targeting specific hardware constraints and modern CPU architectures.
+**Goal:** Introduce multi-size-class routing without linear scans.
+
+**Why/Context:** Extend the v0.1.x single-size slab into multiple size classes.
 - [x] **Arbitrary Alignment Engine**
-  - Enforce custom alignment boundaries at the Pool initialization stage.
-  - Implement cross-platform OS-level aligned memory APIs (`_aligned_malloc` for Windows, `posix_memalign` for POSIX).
-- [x] **Cache Coherency & SIMD Compatibility**
-  - Enforce 64-byte (Cache Line) alignment to prevent False Sharing in multi-core scenarios.
-  - Validate memory alignment constraints for SIMD instructions (e.g., 16-byte for NEON, 32-byte for AVX).
+  - Satisfy user-specified alignment with a platform floor (effective alignment = `max(alignment_, sizeof(void*))`).
+  - Cross-platform aligned allocation APIs (`_aligned_malloc` for Windows, `posix_memalign` for POSIX).
+- [x] **Cache Coherence & SIMD Compatibility**
+  - Enable cache-line (64-byte) alignment for designated classes/paths to reduce the risk of false sharing.
+  - Validate class-specific alignment (e.g., NEON 16-byte, AVX 32-byte).
 - [x] **Segregated Free Lists (Slab Classes)**
-  - Implement a `SlabManager` dispatcher to manage multiple generic size classes (e.g., 16B, 32B, 64B, 128B).
-  - O(1) size class routing to provide a generalized, fragmentation-free memory allocation interface.
+  - `SlabManager` manages multiple size classes (16, 32, 64, 128, 256, 512, 1024 bytes).
+  - O(1) size-class routing (no linear scans); fragmentation controlled per class.
+
+**Acceptance**
+- Targeted alignment tests pass for representative classes: SIMD (32-byte) and cache-line (64-byte).
+- Effective alignment policy is documented: requests with `alignment_ ≥ class_min` are satisfied; the platform floor is `sizeof(void*)`.
+- Routing is validated as O(1) by design notes: bit-scan-based mapping (`_BitScanReverse` / `__builtin_clzll`), **no linear scans**.
+
+**References**
+- [Allocator Header](../include/slab_allocator.h)
+- [Allocator Source](../src/slab_allocator.cpp)
+- [Manager Header](../include/slab_manager.h)
+- [Manager Source](../src/slab_manager.cpp)
+- [Allocator Test](../tests/test_slab.cpp)
+- [Manager Test](../tests/test_manager.cpp)
 
 ## v0.4.0: Memory Safety & Corruption Detection
 Core fail-fast diagnostics for detecting runtime memory corruption in a constrained environment.
