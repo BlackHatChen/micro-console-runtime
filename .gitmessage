@@ -1,0 +1,33 @@
+type(scope): subject (≤50 chars, imperative, no period)
+
+# Body starts after the blank line. For docs/test/ci/refactor the body is optional,
+# but recommended for non-trivial changes. Keep lines ~72 chars when possible.
+
+Why:
+- What problem does this change solve? Why now? (1–2 lines)
+
+How:
+- What changed at a high level? Mention key files/modules (1–3 lines)
+
+Validation:
+- How did you verify it? CI/tests/links resolve/behavior checked (1–3 lines)
+
+# ----------------------------------------------------------------------
+# Allowed types (per commit-msg hook):
+#   mm, alloc, lock, feat, fix, perf, refactor, test, docs, ci
+#
+# Allowed scopes (per commit-msg hook):
+#   buddy, slab, arena, freelist, gc, os, sync, api, align,
+#   ring, zerocopy, watchdog, telemetry, ecs, timestep, simd, hal, loop,
+#   roadmap, readme, release, adr, repro, bench, workflow, hook
+#
+# Examples:
+#   docs(roadmap): finalize v0.1.0–v0.3.0
+#   ci(workflow): align steps with README Quick Start
+#   test(slab): add alignment floor cases for sizeof(void*)
+#
+# Notes:
+# - Subject must NOT end with a period.
+# - Keep second line blank.
+# - Required body for types: mm, alloc, lock, feat, fix, perf.
+# - Body optional for: docs, test, ci, refactor (still recommended).

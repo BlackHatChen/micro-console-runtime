@@ -1,96 +1,53 @@
 # Micro-Console Runtime Environment
-
 [![C++ CI Pipeline](https://github.com/BlackHatChen/micro-console-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/BlackHatChen/micro-console-runtime/actions/workflows/ci.yml)
 
 > A high-performance, deterministic C++ runtime simulation for constrained embedded systems.
 
-## 📖 Overview
+## Current Status
+**v0.3.1** (Stabilization on `fix/v0.3-stabilize`). Next: **v0.4.0** (Memory Safety & Debugging Tools).
 
-This project implements a lightweight runtime environment designed to simulate the strict resource constraints of modern embedded devices. It focuses on deterministic memory management, cache coherency, and system-level reliability, mirroring the architecture of embedded systems and RTOS (Real-Time Operating Systems).
+## Overview
+This project implements a lightweight runtime environment that simulates the strict resource constraints of embedded systems. It focuses on deterministic memory management, cache-line alignment/coherency, and system-level reliability with industrial delivery (CMake, CI, Docker, tests, benchmarks).
 
-**Current Status**: `v0.3.0` completed. `v0.3.1` stabilization in progress. Next: `v0.4.0` (Memory Safety & Debugging Tools).
+## Key Features
+- **Deterministic Memory Model**: `SlabAllocator` + `SlabManager` (Segregated free lists), O(1) allocate/free, external fragmentation controlled. (*Throughput*: Slab is **≥1.5×** faster than `malloc` on the default small-object workload.)
+- **Hardware-Aware Design**: O(1) size-class routing by bit-scan instructions (`__builtin_clzll` / `_BitScanReverse`), arbitrary memory alignment support (e.g., NEON 16-byte, AVX 32-byte, cache-line 64-byte).
+- **Zero Per-allocation Metadata**: Deallocation uses explicit `(size, alignment)` to keep O(1) free and maximize usable memory density.
+- **Reliability & Safety**: C++17/RAII, cross-platform aligned APIs (`_aligned_malloc` / `posix_memalign`).
+- **Reproducibility**: Dockerized environment + GitHub Actions.
 
-## ✨ Key Features
-
-* **Deterministic Memory Model**: Custom `SlabAllocator` and `SlabManager` (Segregated Free Lists) eliminate external fragmentation and ensure predictable allocation in O(1) time.
-  * *Performance*: Achieve **~4.1x throughput improvement** (4.03x speedup) over standard `std::malloc` in high-frequency small object allocation benchmarks (tested by Google Benchmark).
-* **Hardware-Aware & Branchless Design**: 
-  * Implement O(1) size class routing using hardware bit-scan instructions (`__builtin_clzll` / `_BitScanReverse`).
-  * Enforce arbitrary memory alignment (e.g., AVX 32-byte, Cache-Line 64-byte) for SIMD operations and RISC architectures.
-* **Zero Metadata**: Avoid per-allocation headers by routing deallocation using explicit `(size, alignment)` parameters in O(1), maximizing usable memory density.
-* **Reliability & Safety**: Build with RAII (`std::make_unique`, `std::array`) and modern C++17 standards to prevent memory leaks. Cross-platform OS API integration (`_aligned_malloc` / `posix_memalign`) ensures safe aligned memory boundaries.
-* **Reproducibility**: Fully Dockerized development environment for consistent cross-platform builds and CI/CD integration via GitHub Actions.
-
-## 📊 Performance Benchmark
-
-Benchmarks were conducted using [Google Benchmark](https://github.com/google/benchmark) to compare the `SlabAllocator` against the OS standard `std::malloc`.
-
-**Test Environment:**
-* Compiler optimization: Release mode (`-O3`)
-* Scenario: High-frequency batch allocation and deallocation of 24-byte objects.
-
-**Results:**
-
-| Benchmark | Time | CPU | Iterations |
-| :--- | :--- | :--- | :--- |
-| `BM_SystemMalloc` | 8171 ns | 7954 ns | 86,163 |
-| `BM_SlabAllocator` | 2025 ns | 1971 ns | 353,274 |
-
-*Analysis: The custom `SlabAllocator` achieves a **~4.03x speedup** in CPU time and processes roughly **4.1x more iterations** within the same time window compared to a general-purpose allocator. This proves the extreme efficiency of its O(1) embedded free list design and branchless routing in constrained scenarios.*
-
-## 🚀 Quick Start (Recommended)
-
-The easiest way to build and run the project is using the provided Docker environment.
-
-### Prerequisites
-
-* [Docker](https://www.docker.com/) installed on your machine.
-
-### Build & Run
-```
-# 1. Clone the repository
+## Quick Start
+```bash
+# 1. Clone the Repo.
 git clone https://github.com/BlackHatChen/micro-console-runtime.git
 cd micro-console-runtime
 
-# 1.5 Developer Setup (Recommended)
-# Enable Git hooks for consistent commit message enforcement across machines.
+# (Optional) Developer setup: enable Git hooks; auto-set commit template if .gitmessage exists.
 bash scripts/setup-dev.sh
+# Verify (expected: .githooks; .gitmessage if present)
+git config --local --get core.hooksPath
+git config --local --get commit.template || true
 
-# 2. Build the Docker environment
-docker build -t micro-runtime-env .
+# (Optional) Run in Docker.
+docker build -t micro-runtime-env . # Build the dev image.
+# Enter the Docker environment (Windows PowerShell ${PWD} vs POSIX $(pwd)).
+docker run --rm -it -v "$(pwd)":/app micro-runtime-env 
 
-# 3. Enter the development container
-docker run --rm -it -v $(pwd):/app micro-runtime-env
-
-# --- Inside the Container ---
-
-# 4. Build the project
-mkdir -p build
-
-# You can build the Makefile with Default build type.
+# 2. Build (Debug by default.)
 cmake -S . -B build
+cmake --build build -j
 
-# Or with -O3 optimization (Release Mode).
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+# 3. Run unit tests.
+ctest --test-dir build --output-on-failure
 
-# Compile the codes in parallel.
-cmake --build build --parallel
-
-# 5. Run the tests
-
-# You can run the detailed unit tests by the executable:
-./bin/mcr_test
-
-# Or run the automated test using CTest:
-ctest --output-on-failure
-
+# 4. Run benchmarks (Use Release for build and throughput).
+cmake -S . -B build-rel -DCMAKE_BUILD_TYPE=Release
+cmake --build build-rel -j
+./build-rel/bin/mcr_benchmark
 ```
 
-## 🗺️ Roadmap
+## Roadmap
+We follow structured milestones towards v1.0.0. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
-We follow a structured milestone roadmap towards a v1.0.0 release.
-Please refer to [docs/ROADMAP.md](docs/ROADMAP.md) for detailed development plans.
-
-## 📄 License
-
+## License
 This project is licensed under the [MIT License](LICENSE).
