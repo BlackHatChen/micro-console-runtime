@@ -3,14 +3,6 @@ add_library(mcr_core
     slab_manager.cpp
 )
 
-# Set up include path.
-target_include_directories(mcr_core 
-    PUBLIC 
-    ${CMAKE_SOURCE_DIR}/include
-)
+target_include_directories(mcr_core PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
-# Enable C++17 standards.
-target_compile_features(mcr_core 
-    PUBLIC 
-    cxx_std_17
-)
+target_link_libraries(mcr_core PRIVATE mcr_project_warnings)
