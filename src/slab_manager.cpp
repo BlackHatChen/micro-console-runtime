@@ -13,7 +13,9 @@ namespace mcr {
         for (std::size_t i = 0; i < kNumClasses; i++) {
             // Pre-allocate 100 blocks for each allocator. 
             std::size_t pool_size = current_block_size * 100;
-            // Make alignment equals to block size to prevent False Sharing.
+            // Align each class to its block size.
+            // For classes >= 64-byte, it also isolates cache-line to help avoid false sharing.
+            // As for classes < 64-byte, they can't be fully isolated at cache-line.
             // [Ref] Effective Modern C++ Item 21 (Prefer std::make_unique and std::make_shared to direct use of new.)
             allocators_[i] = std::make_unique<SlabAllocator>(current_block_size, pool_size, current_block_size);
             current_block_size *= 2;
@@ -56,6 +58,7 @@ namespace mcr {
         if (target_size > kMaxClassSize) {
             return nullptr;
         }
+        // Route by `max(size, alignment)`, `Free()` uses the same policy (symmetric).
         std::size_t class_idx = GetClassIndex(target_size);
         return allocators_[class_idx]->Allocate();
     }
@@ -68,6 +71,7 @@ namespace mcr {
         // Route back using the same policy as Allocate().
         std::size_t target_size = std::max(size, alignment);
         if (target_size > kMaxClassSize) {
+            // Keep behavior aligned with `Allocate()`: out-of-range is a no-op.
             return;
         }
         std::size_t class_idx = GetClassIndex(target_size);

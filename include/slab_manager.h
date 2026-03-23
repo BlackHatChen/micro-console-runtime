@@ -12,6 +12,12 @@ namespace mcr {
      * 
      * Implement Segregated Free Lists to handle variable-sized allocations.
      * 
+     * Contract:
+     * 
+     * - O(1) routing: size-class index is computed by a bit-scan mapping (CLZ/BSR), and no linear scans over the class list.
+     * 
+     * - Symmetric policy: both `Allocate`/`Free` route by `max(size, alignment)`, so they always land on the same size-class.
+     * 
      * [Ref] OSTEP Chapter 17 (Free-Space Management) - Segregated Lists.
      */
     class SlabManager {
@@ -73,6 +79,8 @@ namespace mcr {
          * @brief Calculate the size class index for a given size.
          * 
          * Maps size to index: 16->0, 32->1, 64->2, 128->3, 256->4, 512->5, 1024->6
+         * 
+         * Implementation: bit-scan mapping (CLZ/BSR) on (size-1) to find the highest set bit, then subtract the shift of the 16-byte class.
          */
         std::size_t GetClassIndex(std::size_t size) const;
     };
