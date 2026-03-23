@@ -8,18 +8,18 @@
 
 **Why/Context:** Keep the base stable so later changes remain traceable.
 - [x] **Build System & Environment**
-  - Project structure (src, include, tests, docs).
+  - Project structure (`src`, `include`, `tests`, `docs`).
   - Modern CMake with strict warnings.
   - Docker image for reproducible builds.
 - [x] **Quality Control Hooks**
   - Git hooks and a commit message template.
 - [x] **Slab Allocator**
-  - Fixed-size blocks with embedded free lists (O(1) allocate/free).
+  - Fixed-size blocks with embedded free lists (O(1) `Allocate`/`Free`).
   - **Historical alignment:** `sizeof(void*)`.
 
 **Acceptance**
 - Configure and build via CMake on the reference host (see [README → Quick Start](../README.md#quick-start)).
-- Allocator public API is present (O(1) allocate/free).
+- Allocator public API is present (O(1) `Allocate`/`Free`).
 - Commit template/hooks are available from v0.1.0.
 
 **References**
@@ -33,7 +33,7 @@
 
 **Why/Context:** Make changes verifiable and prevent regressions.
 - [x] **Unit Tests (GoogleTest)**
-  - Cover the allocator's basic contract (allocate/free) success, OOM, and boundary cases.
+  - Cover the allocator's basic contract (`Allocate`/`Free`) success, OOM, and boundary cases.
 - [x] **CI Pipeline**
   - GitHub Actions workflow builds and runs tests on a Linux runner.
 - [x] **Benchmark (Google Benchmark)**

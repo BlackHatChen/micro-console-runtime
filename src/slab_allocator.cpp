@@ -1,3 +1,5 @@
+// See public contract in `slab_allocator.h`; `ADR-0001`/`ADR-0003` for rationale.
+
 #include "slab_allocator.h"
 #include <algorithm>
 #include <cstdlib>

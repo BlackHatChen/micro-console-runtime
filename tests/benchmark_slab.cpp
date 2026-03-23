@@ -31,7 +31,7 @@ namespace {
     // Register the test.
     BENCHMARK(BM_SystemMalloc);
 
-    // Benchmark 2: Slab Allocator (O(1) allocate/free).
+    // Benchmark 2: Slab Allocator (O(1) `Allocate`/`Free`).
     void BM_SlabAllocator(benchmark::State& state) {
         const std::size_t pool_size = kObjectSize * kBatchSize;
         mcr::SlabAllocator allocator(kObjectSize, pool_size);

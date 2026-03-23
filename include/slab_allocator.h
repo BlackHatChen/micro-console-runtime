@@ -11,6 +11,18 @@ namespace mcr {
      * (The contiguous free block size insufficient for allocation request even if total block size is sufficient).
      * Since all block sizes are the same, any free block could satisfy an allocation request.
      * 
+     * Contract/Notes:
+     * 
+     * - Alignment floor: the effective alignment is `max(user_alignment, sizeof(void*)`).
+     * The pool is acquired with that alignment, and each block size is rounded up to it, so every payload is at least pointer-size aligned.
+     * 
+     * - Zero metadata: no per-allocation header is written. `Allocate`/`Free` is O(1) by popping/pushing an embedded singly-linked free list node.
+     * 
+     * - Error behavior: `Free(nullptr)` is a no-op. Non power of 2 alignment throws.
+     * The caller must free each block exactly once and only blocks allocated by this allocator (no cross-pool free). 
+     * 
+     * - Thread-safety: not thread-safe. External synchronization is required if used concurrency.
+     * 
      * [Ref] OSTEP Chapter 17 (Free-Space Management) - External Fragmentation, Segregated Lists.
      */
     class SlabAllocator {
@@ -18,9 +30,13 @@ namespace mcr {
         /**
          * @brief Construct the allocator & memory pool.
          * 
-         * By enforcing alignment at the pool initialization stage and preserve O(1) allocate/free.
+         * By enforcing alignment at the pool initialization stage and preserve O(1) `Allocate`/`Free`.
          * 
          * Unaligned accesses could cause performance penalties. (Like multiple accesses to fetch the whole data.)
+         * 
+         * - Alignment is rounded up with a platform floor (sizeof(void*)), guaranteeing at least pointer-size alignment for every payload.
+         * 
+         * - No per-allocation header is written; free list is embedded into blocks.
          * 
          * [Ref] CSAPP Chapter 3.9.3 (Data Alignment)
          * @param block_size The size of each memory block.
@@ -48,7 +64,7 @@ namespace mcr {
          * 
          * Push the block back to the head of the free list in O(1) time.
          * 
-         * @param ptr Pointer to the block to be freed. If it points to nullptr, then does nothing.
+         * @param ptr Pointer to the block to be freed. If ptr is nullptr, do nothing.
          */
         void Free(void* ptr);
 
@@ -86,5 +102,6 @@ namespace mcr {
         FreeBlock* free_list_head_;
     };
 }
+// See also: `ADR-0001` (Allocator Contract), `ADR-0003` (Alignment Policy).
 
 #endif

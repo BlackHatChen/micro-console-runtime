@@ -10,7 +10,7 @@
 This project implements a lightweight runtime environment that simulates the strict resource constraints of embedded systems. It focuses on deterministic memory management, cache-line alignment/coherency, and system-level reliability with industrial delivery (CMake, CI, Docker, tests, benchmarks).
 
 ## Key Features
-- **Deterministic Memory Model**: `SlabAllocator` + `SlabManager` (Segregated free lists), O(1) allocate/free, external fragmentation controlled. (*Throughput*: Slab is **≥1.5×** faster than `malloc` on the default small-object workload.)
+- **Deterministic Memory Model**: `SlabAllocator` + `SlabManager` (Segregated free lists), O(1) `Allocate`/`Free`, external fragmentation controlled. (*Throughput*: Slab is **≥1.5×** faster than `malloc` on the default small-object workload.)
 - **Hardware-Aware Design**: O(1) size-class routing by bit-scan instructions (`__builtin_clzll` / `_BitScanReverse`), arbitrary memory alignment support (e.g., NEON 16-byte, AVX 32-byte, cache-line 64-byte).
 - **Zero Per-allocation Metadata**: Deallocation uses explicit `(size, alignment)` to keep O(1) free and maximize usable memory density.
 - **Reliability & Safety**: C++17/RAII, cross-platform aligned APIs (`_aligned_malloc` / `posix_memalign`).
