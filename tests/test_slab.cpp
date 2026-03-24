@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include "slab_allocator.h"
 #include <cstdint>
+#include <vector>
+#include <cstdlib>
 
 // Original: 20 bytes. Align to 8-byte boundary: 24 bytes.
 struct TestObj {
@@ -9,7 +11,7 @@ struct TestObj {
     float a, b, c;
 };
 
-// [Test 1] Basic Allocation
+// [Test 01] Basic Allocation
 TEST(SlabAllocatorTest, BasicAllocation) {
     // We intentionally set pool_size to 72 bytes.
     // This simulates the memory pool holding exactly 3 blocks.
@@ -29,7 +31,7 @@ TEST(SlabAllocatorTest, BasicAllocation) {
     EXPECT_NE(ptr1, ptr3);
 }
 
-// [Test 2] Capacity and Boundary
+// [Test 02] Capacity and Boundary
 TEST(SlabAllocatorTest, CapacityAndBoundary) {
     // Expect the pool can only fit two 24-byte blocks (48 bytes total).
     // The remaining 12 bytes should be discarded.
@@ -42,7 +44,7 @@ TEST(SlabAllocatorTest, CapacityAndBoundary) {
     EXPECT_EQ(allocator.Allocate(), nullptr);
 }
 
-// [Test 3] Free and Reuse (LIFO feature)
+// [Test 03] Free and Reuse (LIFO feature)
 TEST(SlabAllocatorTest, FreeAndReuse) {
     mcr::SlabAllocator allocator(sizeof(TestObj), 72);
 
@@ -61,7 +63,7 @@ TEST(SlabAllocatorTest, FreeAndReuse) {
     EXPECT_EQ(ptr_new, ptr2);
 }
 
-// [Test 4] Free nullptr (Edge Case)
+// [Test 04] Free nullptr (Edge Case)
 TEST(SlabAllocatorTest, FreeNullptr) {
     mcr::SlabAllocator allocator(sizeof(TestObj), 72);
 
@@ -69,7 +71,7 @@ TEST(SlabAllocatorTest, FreeNullptr) {
     EXPECT_NO_FATAL_FAILURE(allocator.Free(nullptr)); 
 }
 
-// [Test 5] Memory Alignment (Word Alignment)
+// [Test 05] Memory Alignment (Word Alignment)
 TEST(SlabAllocatorTest, MemoryAlignment) {
     mcr::SlabAllocator allocator(sizeof(TestObj), 72);
 
@@ -77,13 +79,13 @@ TEST(SlabAllocatorTest, MemoryAlignment) {
     ASSERT_NE(ptr, nullptr);
 
     // Reinterpret address to integer for arithmetic (Division).
-    uintptr_t address = reinterpret_cast<uintptr_t>(ptr);
+    uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
 
     // Check if the address is a multiple of sizeof(void*).
-    EXPECT_EQ(address % sizeof(void*), 0);
+    EXPECT_EQ(addr % sizeof(void*), 0);
 }
 
-// [Test 6] Stress Test: Exhaust -> Free all -> Exhaust
+// [Test 06] Stress Test: Exhaust -> Free all -> Exhaust
 TEST(SlabAllocatorTest, StressTest) {
     // Simulate a large pool (2400 bytes) for exactly 100 blocks.
     const int count = 100;
@@ -116,7 +118,7 @@ TEST(SlabAllocatorTest, StressTest) {
     EXPECT_EQ(allocator.Allocate(), nullptr);
 }
 
-// [Test 7] SIMD Alignment (AVX - 32 bytes boundary)
+// [Test 07] SIMD Alignment (AVX - 32 bytes boundary)
 TEST(SlabAllocatorTest, SIMDAlignment32) {
     // Request 32-byte alignment.
     // Pool size: 100 bytes. Should fit exactly 3 blocks (96 bytes).
@@ -140,7 +142,7 @@ TEST(SlabAllocatorTest, SIMDAlignment32) {
     EXPECT_EQ(distance, 32);
 }
 
-// [Test 8] Cache Line Alignment (To prevent False Sharing)
+// [Test 08] Cache Line Alignment (To prevent False Sharing)
 TEST(SlabAllocatorTest, CacheLineAlignment64) {
     // Request Cache Line size (64-byte) alignment.
     // Pool size: 200 bytes. Should fit exactly 3 blocks (192 bytes).
@@ -153,7 +155,7 @@ TEST(SlabAllocatorTest, CacheLineAlignment64) {
     EXPECT_EQ(addr % 64, 0);
 }
 
-// [Test 9] Exception: Invalid Alignment (Not a power of 2)
+// [Test 09] Exception: Invalid Alignment (Not a power of 2)
 TEST(SlabAllocatorTest, InvalidAlignmentException) {
     EXPECT_THROW({
         mcr::SlabAllocator allocator(sizeof(TestObj), 100, 17);
@@ -165,4 +167,16 @@ TEST(SlabAllocatorTest, InsufficientAlignedPoolSizeException) {
     EXPECT_THROW({
         mcr::SlabAllocator allocator(sizeof(TestObj), 60, 64);
     }, std::invalid_argument);
+}
+
+// [Test 11] Alignment Floor (alignment < sizeof(void*) is floored to pointer-size)
+TEST(SlabAllocatorTest, AlignmentFloorAtLeastPointerSize) {
+    // Try very small alignment, the effective alignment must be >= sizeof(void*).
+    for (size_t alignment : {1, 2, 4}) {
+        mcr::SlabAllocator allocator(sizeof(TestObj), 72, alignment);
+        void* ptr = allocator.Allocate();
+        ASSERT_NE(ptr, nullptr);
+        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+        EXPECT_EQ(addr % sizeof(void*), 0);
+    }
 }
