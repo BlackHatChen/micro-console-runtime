@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 #include "slab_manager.h"
 #include <cstdint>
+#include <array>
+#include <cstdlib>
 
-// [Test 1] O(1) Size Class Routing & Distance Verification
+// [Test 01] O(1) Size Class Routing & Distance Verification
 TEST(SlabManagerTest, SizeClassRouting) {
     mcr::SlabManager manager;
 
@@ -30,7 +32,7 @@ TEST(SlabManagerTest, SizeClassRouting) {
     EXPECT_EQ(distance, 64);
 }
 
-// [Test 2] Over-Alignment Routing
+// [Test 02] Over-Alignment Routing
 TEST(SlabManagerTest, OverAlignmentRouting) {
     mcr::SlabManager manager;
 
@@ -53,7 +55,7 @@ TEST(SlabManagerTest, OverAlignmentRouting) {
     EXPECT_EQ(distance, 64);
 }
 
-// [Test 3] Size Deallocation
+// [Test 03] Size Deallocation
 TEST(SlabManagerTest, SizeDeallocation) {
     mcr::SlabManager manager;
 
@@ -68,7 +70,7 @@ TEST(SlabManagerTest, SizeDeallocation) {
     EXPECT_EQ(ptr1, ptr2); 
 }
 
-// [Test 4] Exceeding Maximum Class Size
+// [Test 04] Exceeding Maximum Class Size
 TEST(SlabManagerTest, ExceedMaxSize) {
     mcr::SlabManager manager;
 
@@ -77,4 +79,35 @@ TEST(SlabManagerTest, ExceedMaxSize) {
     // The max size of class is 1024 bytes. 
     // If the request exceeds the max size, it should return nullptr.
     EXPECT_EQ(ptr, nullptr);
+}
+
+// [Test 05] Per-Class Alignment
+TEST(SlabManagerTest, PerClassAlignmentMatrix) {
+    constexpr std::array<size_t, 7> kClasses {16, 32, 64, 128, 256, 512, 1024};
+
+    // Each class must align payloads to at least its class size.
+    for (size_t cls : kClasses) {
+        mcr::SlabManager manager;
+        const size_t prev = cls / 2;
+        const size_t requests[2] = {
+            (cls == 16 ? 1 : (prev+1)), // Left inner point in (prev, cls].
+            cls                         // Exact class boundary.
+        };
+
+        for (size_t request : requests) {
+            SCOPED_TRACE(testing::Message() << "class = " << cls << ", request size = " << request);
+
+            void* p1 = manager.Allocate(request);
+            void* p2 = manager.Allocate(request);
+            ASSERT_NE(p1, nullptr);
+            ASSERT_NE(p2, nullptr);
+
+            uintptr_t addr1 = reinterpret_cast<uintptr_t>(p1);
+            uintptr_t addr2 = reinterpret_cast<uintptr_t>(p2);
+            EXPECT_EQ(addr1 % cls, 0);  // Payload must be aligned to at least the class minimum.
+
+            std::ptrdiff_t dist = std::abs(static_cast<std::ptrdiff_t>(addr2 - addr1));
+            EXPECT_EQ(dist, static_cast<std::ptrdiff_t>(cls));  // Inter-allocation stride equals to the class size.
+        }
+    }
 }
