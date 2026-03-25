@@ -1,4 +1,5 @@
 #include "slab_manager.h"
+#include <cstddef>
 #include <stdexcept>
 #include <algorithm>
 

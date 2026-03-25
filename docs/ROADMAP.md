@@ -77,6 +77,24 @@
 - [Allocator Test](../tests/test_slab.cpp)
 - [Manager Test](../tests/test_manager.cpp)
 
+## v0.3.1: Stabilization & Evidence
+**Goal:** Strengthen correctness evidence and design notes without adding features.
+
+**Why Context:** Keep later changes verifiable while preserving external behavior.
+- Gate‑only: tests and in‑code notes, no implementation changes.
+- No API/ABI/behavioral changes, commands are centralized in README.
+- Keep scope tight to avoid churn and regressions.
+
+**Acceptance**
+- A per‑class alignment matrix for {16,32,64,128,256,512,1024} must exist and pass in CI; for class size ≥ cache‑line size, payload alignment must be a multiple of the cache‑line size.
+- When requested alignment < `sizeof(void*)`, payload alignment must be ≥ `sizeof(void*)`; if requested < class size, payload must meet the class minimum.
+- Notes must mention O(1) bit‑scan routing (no linear scans) and the symmetric policy (route by `max(size, alignment)`) in code.
+- CI must be green using the commands in README Quick Start; no public API or behavioral changes are introduced.
+
+**References**
+- Tests: allocator‑level floor & over‑alignment; manager‑level per‑class matrix.  
+- Notes: allocator‑level contract (platform floor); manager‑level routing design notes.
+
 ## v0.4.0: Memory Safety & Corruption Detection
 Core fail-fast diagnostics for detecting runtime memory corruption in a constrained environment.
 - [ ] **Compile-Time Safety Toggles**
