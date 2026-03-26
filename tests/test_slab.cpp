@@ -192,3 +192,9 @@ TEST(SlabAllocatorTest, AlignmentFloorAtLeastPointerSize)
         EXPECT_EQ(addr % sizeof(void *), 0);
     }
 }
+
+// [Test 12] Exception: Zero Alignment
+TEST(SlabAllocatorTest, ZeroAlignmentException)
+{
+    EXPECT_THROW({ mcr::SlabAllocator allocator(sizeof(TestObj), 100, 0); }, std::invalid_argument);
+}
