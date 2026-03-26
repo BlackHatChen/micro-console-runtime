@@ -17,7 +17,8 @@ namespace mcr
      *
      * - O(1) routing: size-class index is computed by a bit-scan mapping (CLZ/BSR), and no linear scans over the class list.
      *
-     * - Symmetric policy: both `Allocate`/`Free` route by `max(size, alignment)`, so they always land on the same size-class.
+     * - Symmetric policy: both `Allocate`/`Free` route by `max(size, alignment)`,
+     *   so they land on the same size-class when the same `(size, alignment)` pair is supplied at both allocation and deallocation sites.
      *
      * [Ref] OSTEP Chapter 17 (Free-Space Management) - Segregated Lists.
      */
@@ -42,9 +43,8 @@ namespace mcr
          * Decided by requested memory size or alignment (the maximum one).
          *
          * @param size The requested memory size.
-         * @param alignment The requested alignment (Default to a word size).
-         * @return Pointer to the allocated memory address
-         * (nullptr if the pool is exhausted / the required size exceeds the maximum size.)
+         * @param alignment The requested alignment. Must be non-zero and a power of 2. The same alignment must be supplied to `Free()` for symmetric routing.
+         * @return Pointer to the allocated memory address, or nullptr if the target size class is exhausted or if `max(size, alignment)` exceeds the maximum managed class size.
          */
         void *Allocate(std::size_t size, std::size_t alignment = sizeof(void *));
 
@@ -53,11 +53,17 @@ namespace mcr
          *
          * Free requires (size, alignment) to route back in O(1) without per-allocation metadata.
          *
+         * Contract:
+         *
+         * - `ptr == nullptr` is allowed and is a no-op.
+         *
+         * - `size` and `alignment` must match the values used at allocation site.
+         *
          * @param ptr Pointer to the memory to be freed.
          * @param size The requested size (Same value used at allocation site).
          * @param alignment The requested alignment (Same value used at allocation site).
          */
-        void Free(void *ptr, std::size_t size, std::size_t alignment = sizeof(void *));
+        void Free(void *ptr, std::size_t size, std::size_t alignment);
 
         // Disable copy semantics to prevent Double Free of the entire manager.
         SlabManager(const SlabManager &) = delete;
