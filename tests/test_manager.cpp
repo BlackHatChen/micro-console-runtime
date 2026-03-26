@@ -149,3 +149,19 @@ TEST(SlabManagerTest, PerClassAlignmentMatrix)
         }
     }
 }
+
+// [Test 06] Exception: Zero Alignment
+TEST(SlabManagerTest, ZeroAlignmentException)
+{
+    mcr::SlabManager manager;
+
+    EXPECT_THROW({ manager.Allocate(16, 0); }, std::invalid_argument);
+}
+
+// [Test 07] Exception: Non-Power-Of-Two Alignment
+TEST(SlabManagerTest, NonPowerOfTwoAlignmentException)
+{
+    mcr::SlabManager manager;
+
+    EXPECT_THROW({ manager.Allocate(16, 24); }, std::invalid_argument);
+}

@@ -4,15 +4,18 @@
 #include <algorithm>
 
 #if defined(_WIN32) || defined(_WIN64)
-    #include <intrin.h> // for _BitScanReverse
+#include <intrin.h> // for _BitScanReverse
 #endif
 
-namespace mcr {
-    SlabManager::SlabManager() {
+namespace mcr
+{
+    SlabManager::SlabManager()
+    {
         // Sizes: 16, 32, 64, 128, 256, 512, 1024 bytes
         std::size_t current_block_size = kMinClassSize;
-        for (std::size_t i = 0; i < kNumClasses; i++) {
-            // Pre-allocate 100 blocks for each allocator. 
+        for (std::size_t i = 0; i < kNumClasses; i++)
+        {
+            // Pre-allocate 100 blocks for each allocator.
             std::size_t pool_size = current_block_size * 100;
             // Align each class to its block size.
             // For classes >= 64-byte, it also isolates cache-line to help avoid false sharing.
@@ -23,12 +26,15 @@ namespace mcr {
         }
     }
 
-    std::size_t SlabManager::GetClassIndex(std::size_t size) const {
+    std::size_t SlabManager::GetClassIndex(std::size_t size) const
+    {
         // Defensive Checks
-        if (size <= kMinClassSize) { // The requested size <= 16: Class 0 allocator.
+        if (size <= kMinClassSize)
+        { // The requested size <= 16: Class 0 allocator.
             return 0;
         }
-        if (size > kMaxClassSize) {
+        if (size > kMaxClassSize)
+        {
             throw std::invalid_argument("Size exceeds maximum managed class size.");
         }
 
@@ -37,11 +43,11 @@ namespace mcr {
         std::size_t s = size - 1;
         unsigned long highest_bit_index = 0;
 #if defined(_WIN32) || defined(_WIN64)
-    #ifdef _WIN64 // BSR: Scan from left to right for the first 1 and return its index position.
+#ifdef _WIN64 // BSR: Scan from left to right for the first 1 and return its index position.
         _BitScanReverse64(&highest_bit_index, s);
-    #else
+#else
         _BitScanReverse(&highest_bit_index, s);
-    #endif
+#endif
 #else
         // CLZ: Return the count of leading zeros.
         // Calculate the index of the highest bit = (64 - 1) - CLZ.
@@ -53,28 +59,40 @@ namespace mcr {
         return static_cast<std::size_t>(highest_bit_index - 3);
     }
 
-    void* SlabManager::Allocate(std::size_t size, std::size_t alignment) {
+    void *SlabManager::Allocate(std::size_t size, std::size_t alignment)
+    {
+        if (alignment == 0 || (alignment & (alignment - 1)) != 0)
+        {
+            throw std::invalid_argument("Alignment must be non-zero and a power of 2.");
+        }
+
         // Ensure the target block size could satisfy both size and alignment.
         std::size_t target_size = std::max(size, alignment);
-        if (target_size > kMaxClassSize) {
+        if (target_size > kMaxClassSize)
+        {
             return nullptr;
         }
+
         // Route by `max(size, alignment)`, `Free()` uses the same policy (symmetric).
         std::size_t class_idx = GetClassIndex(target_size);
         return allocators_[class_idx]->Allocate();
     }
 
-    void SlabManager::Free(void* ptr, std::size_t size, std::size_t alignment) {
-        if (!ptr) {
+    void SlabManager::Free(void *ptr, std::size_t size, std::size_t alignment)
+    {
+        if (!ptr)
+        {
             return;
         }
-        
+
         // Route back using the same policy as Allocate().
         std::size_t target_size = std::max(size, alignment);
-        if (target_size > kMaxClassSize) {
+        if (target_size > kMaxClassSize)
+        {
             // Keep behavior aligned with `Allocate()`: out-of-range is a no-op.
             return;
         }
+        
         std::size_t class_idx = GetClassIndex(target_size);
         allocators_[class_idx]->Free(ptr);
     }
