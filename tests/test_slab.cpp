@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdlib>
 
-// Original: 20 bytes. Align to 8-byte boundary: 24 bytes.
+// Test object used for block-size and alignment-related allocator tests.
 struct TestObj
 {
     int id;
@@ -12,12 +12,37 @@ struct TestObj
     float a, b, c;
 };
 
+namespace
+{
+    constexpr std::size_t MaxSize(std::size_t a, std::size_t b)
+    {
+        return (a > b) ? a : b;
+    }
+
+    constexpr std::size_t AlignUp(std::size_t value, std::size_t alignment)
+    {
+        return (value + alignment - 1) & ~(alignment - 1);
+    }
+
+    constexpr std::size_t EffectiveAlignment(std::size_t requested_alignment = sizeof(void *))
+    {
+        return MaxSize(requested_alignment, sizeof(void *));
+    }
+
+    constexpr std::size_t EffectiveBlockSize(std::size_t raw_block_size, std::size_t requested_alignment = sizeof(void *))
+    {
+        const std::size_t effective_alignment = EffectiveAlignment(requested_alignment);
+        const std::size_t floored_block_size = MaxSize(raw_block_size, sizeof(void *));
+        return AlignUp(floored_block_size, effective_alignment);
+    }
+}
+
 // [Test 01] Basic Allocation
 TEST(SlabAllocatorTest, BasicAllocation)
 {
-    // We intentionally set pool_size to 72 bytes.
-    // This simulates the memory pool holding exactly 3 blocks.
-    mcr::SlabAllocator allocator(sizeof(TestObj), 72);
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    const std::size_t pool_size = block_size * 3;
+    mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
 
     void *ptr1 = allocator.Allocate();
     void *ptr2 = allocator.Allocate();
@@ -36,9 +61,9 @@ TEST(SlabAllocatorTest, BasicAllocation)
 // [Test 02] Capacity and Boundary
 TEST(SlabAllocatorTest, CapacityAndBoundary)
 {
-    // Expect the pool can only fit two 24-byte blocks (48 bytes total).
-    // The remaining 12 bytes should be discarded.
-    mcr::SlabAllocator allocator(sizeof(TestObj), 60);
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    const std::size_t pool_size = block_size * 2 + block_size / 2;
+    mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
 
     EXPECT_NE(allocator.Allocate(), nullptr);
     EXPECT_NE(allocator.Allocate(), nullptr);
@@ -50,7 +75,9 @@ TEST(SlabAllocatorTest, CapacityAndBoundary)
 // [Test 03] Free and Reuse (LIFO feature)
 TEST(SlabAllocatorTest, FreeAndReuse)
 {
-    mcr::SlabAllocator allocator(sizeof(TestObj), 72);
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    const std::size_t pool_size = block_size * 3;
+    mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
 
     void *ptr1 = allocator.Allocate();
     void *ptr2 = allocator.Allocate();
@@ -70,7 +97,8 @@ TEST(SlabAllocatorTest, FreeAndReuse)
 // [Test 04] Free nullptr (Edge Case)
 TEST(SlabAllocatorTest, FreeNullptr)
 {
-    mcr::SlabAllocator allocator(sizeof(TestObj), 72);
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    mcr::SlabAllocator allocator(sizeof(TestObj), block_size);
 
     // When free nullptr, it should do nothing.
     EXPECT_NO_FATAL_FAILURE(allocator.Free(nullptr));
@@ -79,7 +107,8 @@ TEST(SlabAllocatorTest, FreeNullptr)
 // [Test 05] Memory Alignment (Word Alignment)
 TEST(SlabAllocatorTest, MemoryAlignment)
 {
-    mcr::SlabAllocator allocator(sizeof(TestObj), 72);
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    mcr::SlabAllocator allocator(sizeof(TestObj), block_size);
 
     void *ptr = allocator.Allocate();
     ASSERT_NE(ptr, nullptr);
@@ -94,9 +123,10 @@ TEST(SlabAllocatorTest, MemoryAlignment)
 // [Test 06] Stress Test: Exhaust -> Free all -> Exhaust
 TEST(SlabAllocatorTest, StressTest)
 {
-    // Simulate a large pool (2400 bytes) for exactly 100 blocks.
+    // Simulate a large pool for exactly `count` effective blocks.
     const int count = 100;
-    const size_t pool_size = 24 * count;
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    const std::size_t pool_size = block_size * count;
     mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
 
     std::vector<void *> ptrs;
