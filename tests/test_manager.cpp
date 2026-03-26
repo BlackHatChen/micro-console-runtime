@@ -57,6 +57,36 @@ TEST(SlabManagerTest, OverAlignmentRouting)
     EXPECT_EQ(distance, 64);
 }
 
+// [Test 02b] Over-Alignment Deallocation Symmetry Regression
+TEST(SlabManagerTest, OverAlignedFreeRoutingIsSymmetric) {
+    mcr::SlabManager manager;
+
+    // Allocate 2 blocks that must route to the 64-byte class.
+    void* p1 = manager.Allocate(16, 64);
+    void* p2 = manager.Allocate(16, 64);
+
+    ASSERT_NE(p1, nullptr);
+    ASSERT_NE(p2, nullptr);
+
+    // Both returned pointers should statisfy the requested alignment.
+    uintptr_t addr1 = reinterpret_cast<uintptr_t>(p1);
+    uintptr_t addr2 = reinterpret_cast<uintptr_t>(p2);
+    EXPECT_EQ(addr1 % 64, 0);
+    EXPECT_EQ(addr2 % 64, 0);
+
+    // Free the most recent block with the same contract (size, alignment).
+    manager.Free(p2, 16, 64);
+
+    // Reallocate with the same request. Allocate/Free routing is symmetric and the free list is LIFO, it should return the same address.
+    void* p3 = manager.Allocate(16, 64);
+    ASSERT_NE(p3, nullptr);
+
+    EXPECT_EQ(p3, p2);
+
+    uintptr_t addr3 = reinterpret_cast<uintptr_t>(p3);
+    EXPECT_EQ(addr3 % 64, 0);
+}
+
 // [Test 03] Size Deallocation
 TEST(SlabManagerTest, SizeDeallocation)
 {
