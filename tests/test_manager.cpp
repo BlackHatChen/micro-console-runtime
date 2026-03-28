@@ -5,13 +5,13 @@
 #include <cstdlib>
 #include <cstdint>
 
-// [Test 02] Over-Alignment Routing
-TEST(SlabManagerTest, OverAlignmentRouting)
+// [Test 02] Over-Alignment Contract
+TEST(SlabManagerTest, OverAlignmentContract)
 {
     mcr::SlabManager manager;
 
-    // Request 16 bytes, but demand 64-byte Cache Line alignment.
-    // The manager should std::max(16, 64) and route the request to 64-byte pool.
+    // Request 16 bytes, but demand 64-byte cache line alignment.
+    // The request should be satisfied by a class that provides 64-byte alignment.
     void *ptr1 = manager.Allocate(16, 64);
     void *ptr2 = manager.Allocate(16, 64);
 
@@ -23,10 +23,6 @@ TEST(SlabManagerTest, OverAlignmentRouting)
     uintptr_t addr2 = reinterpret_cast<uintptr_t>(ptr2);
     EXPECT_EQ(addr1 % 64, 0);
     EXPECT_EQ(addr2 % 64, 0);
-
-    // Calculate the distance between 2 consecutive allocations to prove p1 came from 64-byte pool.
-    std::ptrdiff_t distance = std::abs(static_cast<std::ptrdiff_t>(addr1 - addr2));
-    EXPECT_EQ(distance, 64);
 }
 
 // [Test 02b] Over-Alignment Deallocation Symmetry Regression
