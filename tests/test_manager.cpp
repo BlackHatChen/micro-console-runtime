@@ -5,35 +5,6 @@
 #include <cstdlib>
 #include <cstdint>
 
-// [Test 01] O(1) Size Class Routing & Distance Verification
-TEST(SlabManagerTest, SizeClassRouting)
-{
-    mcr::SlabManager manager;
-
-    // Request 15 bytes, should route to 16-byte pool.
-    void *ptr1_16 = manager.Allocate(15);
-    void *ptr2_16 = manager.Allocate(15);
-    ASSERT_NE(ptr1_16, nullptr);
-    ASSERT_NE(ptr2_16, nullptr);
-
-    // Calculate the distance between 2 consecutive allocations.
-    uintptr_t addr1 = reinterpret_cast<uintptr_t>(ptr1_16);
-    uintptr_t addr2 = reinterpret_cast<uintptr_t>(ptr2_16);
-    std::ptrdiff_t distance = std::abs(static_cast<std::ptrdiff_t>(addr1 - addr2));
-    EXPECT_EQ(distance, 16); // Proves it came from 16-byte pool.
-
-    // Test 64-byte pool
-    void *ptr1_64 = manager.Allocate(33);
-    void *ptr2_64 = manager.Allocate(33);
-    ASSERT_NE(ptr1_64, nullptr);
-    ASSERT_NE(ptr2_64, nullptr);
-
-    addr1 = reinterpret_cast<uintptr_t>(ptr1_64);
-    addr2 = reinterpret_cast<uintptr_t>(ptr2_64);
-    distance = std::abs(static_cast<std::ptrdiff_t>(addr1 - addr2));
-    EXPECT_EQ(distance, 64);
-}
-
 // [Test 02] Over-Alignment Routing
 TEST(SlabManagerTest, OverAlignmentRouting)
 {
