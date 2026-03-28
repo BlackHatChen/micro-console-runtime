@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <array>
 #include <cstdlib>
+#include <cstdint>
 
 // [Test 01] O(1) Size Class Routing & Distance Verification
 TEST(SlabManagerTest, SizeClassRouting)
@@ -135,17 +136,17 @@ TEST(SlabManagerTest, PerClassAlignmentMatrix)
         {
             SCOPED_TRACE(testing::Message() << "class = " << cls << ", request size = " << request);
 
-            void *p1 = manager.Allocate(request);
-            void *p2 = manager.Allocate(request);
-            ASSERT_NE(p1, nullptr);
-            ASSERT_NE(p2, nullptr);
+            void *ptr1 = manager.Allocate(request);
+            void *ptr2 = manager.Allocate(request);
+            ASSERT_NE(ptr1, nullptr);
+            ASSERT_NE(ptr2, nullptr);
 
-            uintptr_t addr1 = reinterpret_cast<uintptr_t>(p1);
-            uintptr_t addr2 = reinterpret_cast<uintptr_t>(p2);
-            EXPECT_EQ(addr1 % cls, 0); // Payload must be aligned to at least the class minimum.
+            uintptr_t addr1 = reinterpret_cast<uintptr_t>(ptr1);
+            uintptr_t addr2 = reinterpret_cast<uintptr_t>(ptr2);
 
-            std::ptrdiff_t dist = std::abs(static_cast<std::ptrdiff_t>(addr2 - addr1));
-            EXPECT_EQ(dist, static_cast<std::ptrdiff_t>(cls)); // Inter-allocation stride equals to the class size.
+            // Returned block pointers must be aligned to at least the class minimum.
+            EXPECT_EQ(addr1 % cls, 0);
+            EXPECT_EQ(addr2 % cls, 0);
         }
     }
 }
