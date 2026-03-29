@@ -1,28 +1,41 @@
-# Micro-Console Runtime Environment
+# Micro-Console Runtime
 [![C++ CI Pipeline](https://github.com/BlackHatChen/micro-console-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/BlackHatChen/micro-console-runtime/actions/workflows/ci.yml)
 
-> A high-performance, deterministic C++ runtime simulation for constrained embedded systems.
-
----
+> An embedded-inspired C++ runtime project with a current v0.x focuses on the memory subsystem.
 
 ## Current Status
-**v0.3.1** (Stabilization on `fix/v0.3-stabilize`). Next: **v0.4.0** (Memory Safety & Debugging Tools).
-
----
+- Latest released version: **v0.3.0**
+- In development: **v0.3.1** on `fix/v0.3-stabilize`
+- Next planned milestone: **v0.4.0** (Memory Safety & Debugging Tools)
 
 ## Overview
-This project implements a lightweight runtime environment that simulates the strict resource constraints of embedded systems. It focuses on deterministic memory management, cache-line alignment/coherency, and system-level reliability with industrial delivery (CMake, CI, Docker, tests, benchmarks).
+Micro-Console Runtime is a systems-oriented C++ project inspired by constrained embedded environments and RTOS-style design goals.
 
----
+The current delivered scope focuses on the memory subsystem:
+- predictable fixed-size allocation paths
+- size-class-based O(1) routing
+- alignment-aware allocation for hardware-sensitive paths
+- engineering evidence through tests, benchmarks, CI, and Docker
+
+Other runtime subsystems are planned separately and are not yet delivered in v0.x.
+
+## Current Implementation Scope
+The current delivered implementation focuses on the memory subsystem:
+- `SlabAllocator`
+- `SlabManager`
+- unit tests
+- benchmark
+- CI pipeline
+- Docker-based reproducible build environment
+
+Planned runtime subsystems such as simulation, message transport, and higher-level integration are not yet part of the delivered implementation.
 
 ## Key Features
-- **Deterministic Memory Model**: `SlabAllocator` + `SlabManager` (Segregated free lists), O(1) `Allocate`/`Free`, external fragmentation controlled. (*Throughput*: Slab is **≥1.5×** faster than `malloc` on the default small-object workload.)
-- **Hardware-Aware Design**: O(1) size-class routing by bit-scan instructions (`__builtin_clzll` / `_BitScanReverse`), arbitrary memory alignment support (e.g., NEON 16-byte, AVX 32-byte, cache-line 64-byte).
-- **Zero Per-allocation Metadata**: Deallocation uses explicit `(size, alignment)` to keep O(1) free and maximize usable memory density.
-- **Reliability & Safety**: C++17/RAII, cross-platform aligned APIs (`_aligned_malloc` / `posix_memalign`).
-- **Reproducibility**: Dockerized environment + GitHub Actions.
-
----
+- **Fixed-Size Allocator Core**: `SlabAllocator` provides O(1) allocation/deallocation from a single fixed-size pool using an embedded free list.
+- **O(1) Size-Class Routing**: `SlabManager` routes requests by `max(size, alignment)` using bit-scan-based size-class mapping without linear scans.
+- **Explicit Deallocation Contract**: Multi-class deallocation requires caller-supplied `(size, alignment)` instead of per-allocation metadata, preserving O(1) routing symmetry across allocation and free.
+- **Alignment-Aware Design**: Supports alignment-sensitive allocation paths for hardware-aware use cases such as SIMD and cache-line alignment.
+- **Engineering Evidence**: Public contracts are reinforced by tests, CI, benchmarks, and a Docker-based reproducible development environment.
 
 ## Quick Start
 ```bash
@@ -54,12 +67,8 @@ cmake --build build-rel -j
 ./build-rel/bin/mcr_benchmark
 ```
 
----
-
 ## Roadmap
 We follow structured milestones towards v1.0.0. See [docs/ROADMAP.md](docs/ROADMAP.md).
-
----
 
 ## License
 This project is licensed under the [MIT License](LICENSE).
