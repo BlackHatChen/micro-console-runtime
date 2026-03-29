@@ -4,9 +4,9 @@
 > An embedded-inspired C++ runtime project with a current v0.x focuses on the memory subsystem.
 
 ## Current Status
-- Latest released version: **v0.3.0**
-- In development: **v0.3.1** on `fix/v0.3-stabilize`
-- Next planned milestone: **v0.4.0** (Memory Safety & Debugging Tools)
+- Latest released version: **v0.3.1**
+- Next planning lane: **v0.3.2** (allocator contract clarification & test cleanup)
+- Later milestone: **v0.4.0** (Memory Safety & Debugging Tools)
 
 ## Overview
 Micro-Console Runtime is a systems-oriented C++ project inspired by constrained embedded environments and RTOS-style design goals.

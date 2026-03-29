@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [0.3.1] - Unreleased
+## [0.3.1] - 2026-04-03
 This release focuses on contract and correctness stabilization for the memory subsystem without expanding subsystem scope.
 
 ### Fixed
