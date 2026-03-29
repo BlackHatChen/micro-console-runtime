@@ -19,7 +19,7 @@ Validation:
 # Allowed scopes (per commit-msg hook):
 #   buddy, slab, arena, freelist, gc, os, sync, api, align,
 #   ring, zerocopy, watchdog, telemetry, ecs, timestep, simd, hal, loop,
-#   roadmap, readme, release, adr, repro, bench, workflow, hook
+#   roadmap, readme, release, adr, repro, bench, workflow, hook, changelog
 #
 # Examples:
 #   docs(roadmap): finalize v0.1.0–v0.3.0

@@ -3,6 +3,8 @@
 - **Scope (v0.x):** memory subsystem (allocator + tests/benchmark/CI/tooling); other subsystems are planned (not delivered yet).
 - See [README → Current Status](../README.md#current-status). Commands live in [README → Quick Start](../README.md#quick-start).
 
+---
+
 ## v0.1.0: Core Infrastructure & Allocator
 **Goal:** Make the build reproducible and provide a minimal slab allocator.
 
@@ -28,6 +30,8 @@
 - [Header](../include/slab_allocator.h)
 - [Source](../src/slab_allocator.cpp)
 
+---
+
 ## v0.2.0: Reliability, Tests, and CI
 **Goal:** Introduce automated tests, CI, and a benchmark method.
 
@@ -49,6 +53,8 @@
 - [CI](../.github/workflows/ci.yml)
 - [Tests](../tests/test_slab.cpp)
 - [Benchmark](../tests/benchmark_slab.cpp)
+
+---
 
 ## v0.3.0: Hardware Optimization & Architecture
 **Goal:** Introduce multi-size-class routing without linear scans.
@@ -77,23 +83,24 @@
 - [Allocator Test](../tests/test_slab.cpp)
 - [Manager Test](../tests/test_manager.cpp)
 
-## v0.3.1: Stabilization & Evidence
-**Goal:** Strengthen correctness evidence and design notes without adding features.
+---
 
-**Why Context:** Keep later changes verifiable while preserving external behavior.
-- Gate‑only: tests and in‑code notes, no implementation changes.
-- No API/ABI/behavioral changes, commands are centralized in README.
+## v0.3.1: Stabilization & Evidence
+**Goal:** Strengthen correctness evidence, align public contracts with implementation, and fix correctness issues.
+
+**Why Context:** Preserve external scope while making allocator/manager behavior more explicit, testable, and less error-prone.
+- Stabilization-first: bug fixes, contract-alignment changes, tests, CI, and in-code notes are allowed.
+- No new subsystem scope is introduced.
+- Changes may tighten API usage requirements when needed to prevent silent misuse.
 - Keep scope tight to avoid churn and regressions.
 
 **Acceptance**
-- A per‑class alignment matrix for {16,32,64,128,256,512,1024} must exist and pass in CI; for class size ≥ cache‑line size, payload alignment must be a multiple of the cache‑line size.
-- When requested alignment < `sizeof(void*)`, payload alignment must be ≥ `sizeof(void*)`; if requested < class size, payload must meet the class minimum.
-- Notes must mention O(1) bit‑scan routing (no linear scans) and the symmetric policy (route by `max(size, alignment)`) in code.
-- CI must be green using the commands in README Quick Start; no public API or behavioral changes are introduced.
+- Routing symmetry for `(size, alignment)` is enforced and covered by tests.
+- Alignment validation is enforced at the manager allocation entry.
+- Allocator and manager header contracts are aligned with current behavior.
+- CI is green using the commands in README Quick Start.
 
-**References**
-- Tests: allocator‑level floor & over‑alignment; manager‑level per‑class matrix.  
-- Notes: allocator‑level contract (platform floor); manager‑level routing design notes.
+---
 
 ## v0.4.0: Memory Safety & Corruption Detection
 Core fail-fast diagnostics for detecting runtime memory corruption in a constrained environment.
@@ -107,6 +114,8 @@ Core fail-fast diagnostics for detecting runtime memory corruption in a constrai
   - Implement **GoogleTest Death Tests** to validate fail-fast mechanisms upon memory corruption.
   - Add separated **GitHub Actions pipelines**: Debug (Sanitizers enabled) for safety validation, and Release for throughput benchmarking.
 
+---
+
 ## v0.5.0: Memory Diagnostics & Advanced Profiling
 Advanced state tracking, recovery mechanisms, and cross-platform verification.
 - [ ] **Lifecycle & Leak Diagnostics**
@@ -118,6 +127,8 @@ Advanced state tracking, recovery mechanisms, and cross-platform verification.
   - **Thread Ownership Assertion**: Record `std::this_thread::get_id()` upon allocation to detect illegal cross-thread deallocations in lock-free contexts.
 - [ ] **Cross-Platform CI Verification**
   - **ARM Architecture Verification**: Utilize QEMU within CI to verify alignment constraints and endian-safe redzones on ARM toolchains.
+
+---
 
 ## v1.0.0: System Integration & Delivery
 Full runtime integration with simulation subsystems.

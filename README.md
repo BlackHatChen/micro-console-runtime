@@ -3,11 +3,17 @@
 
 > A high-performance, deterministic C++ runtime simulation for constrained embedded systems.
 
+---
+
 ## Current Status
 **v0.3.1** (Stabilization on `fix/v0.3-stabilize`). Next: **v0.4.0** (Memory Safety & Debugging Tools).
 
+---
+
 ## Overview
 This project implements a lightweight runtime environment that simulates the strict resource constraints of embedded systems. It focuses on deterministic memory management, cache-line alignment/coherency, and system-level reliability with industrial delivery (CMake, CI, Docker, tests, benchmarks).
+
+---
 
 ## Key Features
 - **Deterministic Memory Model**: `SlabAllocator` + `SlabManager` (Segregated free lists), O(1) `Allocate`/`Free`, external fragmentation controlled. (*Throughput*: Slab is **≥1.5×** faster than `malloc` on the default small-object workload.)
@@ -15,6 +21,8 @@ This project implements a lightweight runtime environment that simulates the str
 - **Zero Per-allocation Metadata**: Deallocation uses explicit `(size, alignment)` to keep O(1) free and maximize usable memory density.
 - **Reliability & Safety**: C++17/RAII, cross-platform aligned APIs (`_aligned_malloc` / `posix_memalign`).
 - **Reproducibility**: Dockerized environment + GitHub Actions.
+
+---
 
 ## Quick Start
 ```bash
@@ -46,8 +54,12 @@ cmake --build build-rel -j
 ./build-rel/bin/mcr_benchmark
 ```
 
+---
+
 ## Roadmap
 We follow structured milestones towards v1.0.0. See [docs/ROADMAP.md](docs/ROADMAP.md).
+
+---
 
 ## License
 This project is licensed under the [MIT License](LICENSE).

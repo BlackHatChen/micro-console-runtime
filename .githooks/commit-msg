@@ -49,9 +49,9 @@ fi
 # Scopes (plus common docs/flow scopes you use):
 #   buddy, slab, arena, freelist, gc, os, sync, api, align,
 #   ring, zerocopy, watchdog, telemetry, ecs, timestep, simd, hal, loop,
-#   roadmap, readme, release, adr, repro, bench, workflow, hook
+#   roadmap, readme, release, adr, repro, bench, workflow, hook, changelog
 # ------------------------------------------------------------
-REGEX="^(mm|alloc|lock|feat|fix|perf|refactor|test|docs|ci)(\((buddy|slab|arena|freelist|gc|os|sync|api|align|ring|zerocopy|watchdog|telemetry|ecs|timestep|simd|hal|loop|roadmap|readme|release|adr|repro|bench|workflow|hook)\))?: .{1,50}$"
+REGEX="^(mm|alloc|lock|feat|fix|perf|refactor|test|docs|ci)(\((buddy|slab|arena|freelist|gc|os|sync|api|align|ring|zerocopy|watchdog|telemetry|ecs|timestep|simd|hal|loop|roadmap|readme|release|adr|repro|bench|workflow|hook|changelog)\))?: .{1,50}$"
 
 if ! [[ "$HEADER_LINE" =~ $REGEX ]]; then
   echo "❌ Error: Commit message header does not follow system standards."
@@ -60,7 +60,7 @@ if ! [[ "$HEADER_LINE" =~ $REGEX ]]; then
   echo "Valid scopes:"
   echo "buddy, slab, arena, freelist, gc, os, sync, api, align, ring, zerocopy,"
   echo "watchdog, telemetry, ecs, timestep, simd, hal, loop, roadmap, readme,"
-  echo "release, adr, repro, bench, workflow, hook"
+  echo "release, adr, repro, bench, workflow, hook, changelog"
   echo "Subject length: max 50 chars"
   echo "------------------------------------------------"
   echo "Your header (line $HEADER_LINE_NO): $HEADER_LINE"
