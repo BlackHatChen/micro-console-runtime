@@ -56,19 +56,22 @@ TEST(SlabManagerTest, OverAlignedFreeRoutingIsSymmetric)
     EXPECT_EQ(addr3 % 64, 0);
 }
 
-// [Test 03] Size Deallocation
-TEST(SlabManagerTest, SizeDeallocation)
+// [Test 03] Default-Aligned Deallocation Reuse Proxy
+TEST(SlabManagerTest, DefaultAlignedDeallocationReuseProxy)
 {
     mcr::SlabManager manager;
 
-    // It will be routed to 64-byte pool.
+    // Request 40 bytes, it should route to 64-byte class under the current size-class mapping.
     void *ptr1 = manager.Allocate(40);
+    ASSERT_NE(ptr1, nullptr);
 
-    // Free it and request another same size allocation (Route to 64-byte pool again).
+    // Free with the same default-aligned contract and allocate again.
     manager.Free(ptr1, 40, sizeof(void *));
     void *ptr2 = manager.Allocate(40);
+    ASSERT_NE(ptr2, nullptr);
 
-    // Because of LIFO free list feature, they will use the same address.
+    // Proxy assertion:
+    // Under LIFO free-list behavior, reuse the same address immediately indicates that deallocation routes back to the same address.
     EXPECT_EQ(ptr1, ptr2);
 }
 
