@@ -29,6 +29,8 @@ namespace mcr
      * - Passing a non-owned pointer, a non-block pointer, or double-freeing a block is a contract violation (undefined behavior).
      *
      * 4. Thread-safety: not thread-safe. External synchronization is required for any concurrent access.
+     * 
+     * 5. Lifetime: destroying the allocator releases the backing pool owned by this allocator. Any outstanding pointers returned by `Allocate()` become invalid after destruction.
      *
      * [Ref] OSTEP Chapter 17 (Free-Space Management) - External Fragmentation, Segregated Lists.
      */
@@ -56,7 +58,9 @@ namespace mcr
         SlabAllocator(std::size_t block_size, std::size_t pool_size, std::size_t alignment = sizeof(void *));
 
         /**
-         * @brief Destruct allocator and free all allocated memory.
+         * @brief Destroy the allocator and release its backing pool.
+         * 
+         * Any outstanding pointers returned by `Allocate()` become invalid after destruction.
          */
         ~SlabAllocator();
 
