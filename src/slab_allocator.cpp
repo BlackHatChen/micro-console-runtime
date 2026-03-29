@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstddef>
+#include <cstdint>
 #include <stdexcept>
 
 #if defined(_WIN32) || defined(_WIN64)
