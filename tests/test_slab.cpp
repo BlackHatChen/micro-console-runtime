@@ -228,3 +228,23 @@ TEST(SlabAllocatorTest, ZeroAlignmentException)
 {
     EXPECT_THROW({ mcr::SlabAllocator allocator(sizeof(TestObj), 100, 0); }, std::invalid_argument);
 }
+
+TEST(SlabAllocatorTest, FreeNullptrKeepsAllocatorExhausted)
+{
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    const int block_count = 3;
+    const std::size_t pool_size = block_size * block_count;
+    mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
+
+    for (int i = 0; i < block_count; i++)
+    {
+        void *ptr = allocator.Allocate();
+        EXPECT_NE(ptr, nullptr);
+    }
+
+    EXPECT_EQ(allocator.Allocate(), nullptr);
+
+    allocator.Free(nullptr);
+
+    EXPECT_EQ(allocator.Allocate(), nullptr);
+}
