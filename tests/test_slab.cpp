@@ -72,8 +72,8 @@ TEST(SlabAllocatorTest, CapacityAndBoundary)
     EXPECT_EQ(allocator.Allocate(), nullptr);
 }
 
-// [Test 03] Free and Reuse (LIFO feature)
-TEST(SlabAllocatorTest, FreeAndReuse)
+// [Test 03] Free Reuses Most Recently Freed Block (LIFO feature)
+TEST(SlabAllocatorTest, FreeReusesMostRecentlyFreedBlock)
 {
     const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
     const std::size_t pool_size = block_size * 3;
