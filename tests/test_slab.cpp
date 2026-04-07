@@ -94,6 +94,31 @@ TEST(SlabAllocatorTest, FreeReusesMostRecentlyFreedBlock)
     EXPECT_EQ(ptr_new, ptr2);
 }
 
+TEST(SlabAllocatorTest, FreeValidPtrRestoresOneAllocationAfterExhaustion)
+{
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    const int block_count = 3;
+    const std::size_t pool_size = block_size * block_count;
+    mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
+
+    void *ptr1 = allocator.Allocate();
+    void *ptr2 = allocator.Allocate();
+    void *ptr3 = allocator.Allocate();
+
+    ASSERT_NE(ptr1, nullptr);
+    ASSERT_NE(ptr2, nullptr);
+    ASSERT_NE(ptr3, nullptr);
+
+    ASSERT_EQ(allocator.Allocate(), nullptr);   // exhausted
+
+    allocator.Free(ptr2);
+
+    void *recovered = allocator.Allocate();
+    ASSERT_NE(recovered, nullptr);              // restored once
+
+    EXPECT_EQ(allocator.Allocate(), nullptr);   // exhausted again
+}
+
 // [Test 04] Free nullptr (Edge Case)
 TEST(SlabAllocatorTest, FreeNullptr)
 {
