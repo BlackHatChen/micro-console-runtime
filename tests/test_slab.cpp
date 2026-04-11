@@ -129,8 +129,7 @@ TEST(SlabAllocatorTest, FreeNullptr)
     EXPECT_NO_FATAL_FAILURE(allocator.Free(nullptr));
 }
 
-// [Test 05] Memory Alignment (Word Alignment)
-TEST(SlabAllocatorTest, MemoryAlignment)
+TEST(SlabAllocatorTest, DefaultAllocationIsPointerAligned)
 {
     const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
     mcr::SlabAllocator allocator(sizeof(TestObj), block_size);
