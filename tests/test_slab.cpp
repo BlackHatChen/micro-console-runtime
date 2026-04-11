@@ -144,6 +144,18 @@ TEST(SlabAllocatorTest, DefaultAllocationIsPointerAligned)
     EXPECT_EQ(addr % sizeof(void *), 0);
 }
 
+TEST(SlabAllocatorTest, AlignmentOverWordSizeRetained)
+{
+    for (size_t count : {1, 2, 4})
+    {
+        mcr::SlabAllocator allocator(sizeof(TestObj), 72, count * sizeof(void *));
+        void *ptr = allocator.Allocate();
+        ASSERT_NE(ptr, nullptr);
+        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+        EXPECT_EQ(addr % (count * sizeof(void *)), 0);
+    }
+}
+
 // [Test 06] Stress Test: Exhaust -> Free all -> Exhaust
 TEST(SlabAllocatorTest, StressTest)
 {
