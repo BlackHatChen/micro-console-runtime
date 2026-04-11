@@ -284,3 +284,26 @@ TEST(SlabAllocatorTest, FreeNullptrKeepsAllocatorExhausted)
 
     EXPECT_EQ(allocator.Allocate(), nullptr);
 }
+
+TEST(SlabAllocatorTest, BlockSizeRoundsUpToEffectiveAlignment)
+{
+    const std::size_t alignment = 2 * sizeof(void *);
+    const std::size_t raw_block_size = alignment - sizeof(void *);
+    const std::size_t pool_size = alignment * 3;
+    const int expected_block_count = 3;
+
+    mcr::SlabAllocator allocator(raw_block_size, pool_size, alignment);
+
+    // The requested object size is not a multiple of alignment,
+    // so the allocator should round each block size up to alignment before cutting the pool.
+    // With pool_size = alignment * 3, only 3 blocks should be allocatable before exhaustion.
+    for (int i = 0; i < expected_block_count; i++)
+    {
+        void *ptr = allocator.Allocate();
+        ASSERT_NE(ptr, nullptr);
+    }
+    
+    // Without round-up, the raw size would allow more allocations than 3.
+    // Exhaustion on the 4th call supports that the pool was cut using the rounded block size instead.
+    EXPECT_EQ(allocator.Allocate(), nullptr);
+}
