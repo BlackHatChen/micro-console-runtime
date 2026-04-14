@@ -13,24 +13,14 @@ namespace mcr
      *
      * Contract/Notes:
      *
-     * 1. Alignment floor: the effective alignment is `max(user_alignment, sizeof(void*))`.
+     * - Alignment floor: the effective alignment is `max(user_alignment, sizeof(void*))`.
      * The pool is acquired with that alignment, and each block size is rounded up to it, so every returned block pointer is at least pointer-size aligned.
      *
-     * 2. Zero metadata: no per-allocation header is written. `Allocate`/`Free` is O(1) by popping/pushing an embedded singly-linked free list node.
+     * - Zero metadata: no per-allocation header is written. `Allocate`/`Free` is O(1) by popping/pushing an embedded singly-linked free list node.
      *
-     * 3. Error behavior:
-     *
-     * - Construction throws `std::invalid_argument` if alignment is zero, not a power of 2, or if the pool cannot hold at least one effective block.
-     *
-     * - Construction throws `std::bad_alloc` if the OS memory request fails.
-     *
-     * - `Free(nullptr)` is a no-op.
-     *
-     * - Passing a non-owned pointer, a non-block pointer, or double-freeing a block is a contract violation (undefined behavior).
-     *
-     * 4. Thread-safety: not thread-safe. External synchronization is required for any concurrent access.
+     * - Thread-safety: not thread-safe. External synchronization is required for any concurrent access.
      * 
-     * 5. Lifetime: destroying the allocator releases the backing pool owned by this allocator. Any outstanding pointers returned by `Allocate()` become invalid after destruction.
+     * - Lifetime: destroying the allocator releases the backing pool owned by this allocator. Any outstanding pointers returned by `Allocate()` become invalid after destruction.
      *
      * [Ref] OSTEP Chapter 17 (Free-Space Management) - External Fragmentation, Segregated Lists.
      */
