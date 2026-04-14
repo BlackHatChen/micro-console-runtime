@@ -13,10 +13,11 @@ namespace mcr
      *
      * Contract/Notes:
      *
-     * - Alignment floor: the effective alignment is `max(user_alignment, sizeof(void*))`.
-     * The pool is acquired with that alignment, and each block size is rounded up to it, so every returned block pointer is at least pointer-size aligned.
-     *
-     * - Zero metadata: no per-allocation header is written. `Allocate`/`Free` is O(1) by popping/pushing an embedded singly-linked free list node.
+     * - No fixed per-allocation header is written in front of each block.
+     * 
+     * - Free-list metadata is maintained via an embedded singly-linked free list.
+     * 
+     * - `Allocate()` and `Free()` operate in O(1) time.
      *
      * - Thread-safety: not thread-safe. External synchronization is required for any concurrent access.
      * 
@@ -30,13 +31,7 @@ namespace mcr
         /**
          * @brief Construct the allocator & memory pool.
          *
-         * Enforces alignment at pool initialization time while preserving O(1) `Allocate`/`Free`.
-         *
-         * Unaligned accesses could cause performance penalties. (Like multiple accesses to fetch the whole data.)
-         *
-         * - The effective alignment is `max(requested_alignment, sizeof(void*))`. Block size is then rounded up to that alignment.
-         *
-         * - No per-allocation header is written; free list is embedded into blocks.
+         * The effective alignment is `max(requested_alignment, sizeof(void*))`. Block size is then rounded up to that alignment.
          *
          * [Ref] CSAPP Chapter 3.9.3 (Data Alignment)
          * @param block_size The requested payload size of each block.
@@ -56,8 +51,6 @@ namespace mcr
 
         /**
          * @brief Allocate a memory block from the pool.
-         *
-         * Get a free block address from the head of the free list in O(1) time.
          *
          * @return pointer to the allocated memory, or nullptr if the pool is exhausted.
          */
