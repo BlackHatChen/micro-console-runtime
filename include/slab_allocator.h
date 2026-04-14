@@ -21,7 +21,7 @@ namespace mcr
      *
      * - Thread-safety: not thread-safe. External synchronization is required for any concurrent access.
      * 
-     * - Lifetime: destroying the allocator releases the backing pool owned by this allocator. Any outstanding pointers returned by `Allocate()` become invalid after destruction.
+     * - Lifetime: destroying the allocator invalidates any outstanding pointers returned by `Allocate()`.
      *
      * [Ref] OSTEP Chapter 17 (Free-Space Management) - External Fragmentation, Segregated Lists.
      */
@@ -44,8 +44,6 @@ namespace mcr
 
         /**
          * @brief Destroy the allocator and release its backing pool.
-         * 
-         * Any outstanding pointers returned by `Allocate()` become invalid after destruction.
          */
         ~SlabAllocator();
 
