@@ -1,5 +1,3 @@
-// See public contract in `slab_allocator.h`; `ADR-0001`/`ADR-0003` for rationale.
-
 #include "slab_allocator.h"
 #include <algorithm>
 #include <cstdlib>
@@ -17,30 +15,28 @@ namespace mcr
 {
     SlabAllocator::SlabAllocator(std::size_t block_size, std::size_t pool_size, std::size_t alignment) : alignment_(alignment)
     {
-        // 1. Alignment Validation: Power of 2 & a Word Size.
+        // Validate the requested alignment and derive the effective alignment.
         if (alignment_ == 0 || (alignment_ & (alignment_ - 1)) != 0)
         {
-            throw std::invalid_argument("Alignment must be a power of 2.");
+            throw std::invalid_argument("Alignment must be non-zero and a power of 2.");
         }
         alignment_ = std::max(alignment_, sizeof(void *));
 
-        // 2. Block Size Adjustment
-        // Ensure block size is large enough to hold the embedded FreeBlock pointer.
-        block_size = std::max(block_size, sizeof(FreeBlock));
-        // Round up block size to the nearest multiple of alignment_.
-        block_size_ = (block_size + alignment_ - 1) & ~(alignment_ - 1);
+        // Adjust the final block size.
+        block_size = std::max(block_size, sizeof(FreeBlock));            // Ensure the block is large enough to hold an embedded free-list node.
+        block_size_ = (block_size + alignment_ - 1) & ~(alignment_ - 1); // Round the final block size up to the nearest multiple of alignment_.
 
-        // 3. Calculate how many blocks can fit in the pool size.
+        // Compute how many whole blocks fit in the requested pool size.
         std::size_t block_count = pool_size / block_size_;
         if (block_count == 0)
         {
-            throw std::invalid_argument("Pool size must be at least as large as block size.");
+            throw std::invalid_argument("Pool size must be able to hold at least one effective block.");
         }
 
-        // 4. Actual Pool Size Recalculation (Prevent redundant memory request from OS.)
+        // Trim the backing-pool size to a whole-block multiple.
         pool_size_ = block_count * block_size_;
 
-        // 5. Cross Platform Memory Allocation
+        // Allocate the backing pool.
 #if defined(_WIN32) || defined(_WIN64)
         pool_start_ = _aligned_malloc(pool_size_, alignment_);
         if (!pool_start_)
@@ -54,8 +50,7 @@ namespace mcr
         }
 #endif
 
-        // 6. Wire Up The Free List
-        // Slice the memory pool into fixed-size blocks and link them.
+        // Link the free list across the pool blocks.
         free_list_head_ = static_cast<FreeBlock *>(pool_start_);
         uintptr_t current_byte_ptr = reinterpret_cast<uintptr_t>(pool_start_);
         for (std::size_t i = 0; i < block_count - 1; i++)
@@ -66,12 +61,12 @@ namespace mcr
             current_byte_ptr += block_size_;
         }
         FreeBlock *last_block = reinterpret_cast<FreeBlock *>(current_byte_ptr);
-        last_block->next = nullptr; // Last block doesn't have the next block.
+        last_block->next = nullptr; // Terminate the free list.
     }
 
     SlabAllocator::~SlabAllocator()
     {
-        // Cross Platform Memory Deallocation
+        // Release the backing pool.
 #if defined(_WIN32) || defined(_WIN64)
         _aligned_free(pool_start_);
 #else
@@ -81,13 +76,13 @@ namespace mcr
 
     void *SlabAllocator::Allocate()
     {
-        // If the memory pool is exhausted, return nullptr and do nothing.
+        // If the allocator is exhausted, return nullptr.
         if (!free_list_head_)
         {
             return nullptr;
         }
 
-        // O(1) pop a free block from the head of the free list.
+        // Pop the head block from the free list.
         void *allocate_ptr = free_list_head_;
         free_list_head_ = free_list_head_->next;
         return allocate_ptr;
@@ -95,13 +90,13 @@ namespace mcr
 
     void SlabAllocator::Free(void *ptr)
     {
-        // If the free pointer is nullptr, do nothing.
+        // If ptr is nullptr, do nothing.
         if (!ptr)
         {
             return;
         }
 
-        // O(1) push the block back to the head of the free list.
+        // Push the block back to the free-list head.
         FreeBlock *free_block = static_cast<FreeBlock *>(ptr);
         free_block->next = free_list_head_;
         free_list_head_ = free_block;
