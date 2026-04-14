@@ -285,6 +285,32 @@ TEST(SlabAllocatorTest, FreeNullptrKeepsAllocatorExhausted)
     EXPECT_EQ(allocator.Allocate(), nullptr);
 }
 
+TEST(SlabAllocatorTest, FreeNullptrDoesNotInterfereWithSubsequentRestore)
+{
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    const int block_count = 3;
+    const std::size_t pool_size = block_size * block_count;
+    mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
+
+    void *ptr1 = allocator.Allocate();
+    void *ptr2 = allocator.Allocate();
+    void *ptr3 = allocator.Allocate();
+
+    ASSERT_NE(ptr1, nullptr);
+    ASSERT_NE(ptr2, nullptr);
+    ASSERT_NE(ptr3, nullptr);
+
+    ASSERT_EQ(allocator.Allocate(), nullptr); // exhausted
+
+    allocator.Free(nullptr);
+    allocator.Free(ptr2);
+
+    void *recovered = allocator.Allocate();
+    ASSERT_NE(recovered, nullptr); // restored once
+
+    EXPECT_EQ(allocator.Allocate(), nullptr); // exhausted again
+}
+
 TEST(SlabAllocatorTest, BlockSizeRoundsUpToEffectiveAlignment)
 {
     const std::size_t alignment = 2 * sizeof(void *);
