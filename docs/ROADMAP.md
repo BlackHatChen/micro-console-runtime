@@ -51,7 +51,7 @@
 **References**
 - [README → Quick Start](../README.md#quick-start)
 - [CI](../.github/workflows/ci.yml)
-- [Tests](../tests/test_slab.cpp)
+- [Tests](../tests/slab_allocator_test.cpp)
 - [Benchmark](../tests/benchmark_slab.cpp)
 
 ---
@@ -80,8 +80,8 @@
 - [Allocator Source](../src/slab_allocator.cpp)
 - [Manager Header](../include/slab_manager.h)
 - [Manager Source](../src/slab_manager.cpp)
-- [Allocator Test](../tests/test_slab.cpp)
-- [Manager Test](../tests/test_manager.cpp)
+- [Allocator Test](../tests/slab_allocator_test.cpp)
+- [Manager Test](../tests/slab_manager_test.cpp)
 
 ---
 

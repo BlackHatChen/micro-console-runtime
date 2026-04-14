@@ -3,8 +3,8 @@
 # ------------------------------------------------------------
 
 add_executable(mcr_test 
-    test_slab.cpp
-    test_manager.cpp
+    slab_allocator_test.cpp
+    slab_manager_test.cpp
 )
 
 target_link_libraries(mcr_test 
