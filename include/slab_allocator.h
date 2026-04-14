@@ -6,39 +6,39 @@
 namespace mcr
 {
     /**
-     * @brief A memory allocator consisting of "fixed-size" blocks.
+     * @brief A memory allocator consisting of fixed-size blocks.
      *
-     * Eliminates external fragmentation (The contiguous free block size insufficient for allocation request even if total block size is sufficient).
-     * Since all block sizes are the same, any free block could satisfy an allocation request.
-     *
-     * Contract/Notes:
-     *
-     * - No fixed per-allocation header is written in front of each block.
+     * Avoids external fragmentation:
      * 
+     * no contiguous free region needs to be larger than one block 
+     * because any free block can satisfy a request for one block.
+     *
+     * Notes:
+     *
+     * - No per-allocation header is prepended to each block.
+     *
      * - Free-list metadata is maintained via an embedded singly-linked free list.
-     * 
+     *
      * - `Allocate()` and `Free()` operate in O(1) time.
      *
-     * - Thread-safety: not thread-safe. External synchronization is required for any concurrent access.
-     * 
-     * - Lifetime: destroying the allocator invalidates any outstanding pointers returned by `Allocate()`.
+     * - Not thread-safe; concurrent use must be synchronized by the caller.
      *
-     * [Ref] OSTEP Chapter 17 (Free-Space Management) - External Fragmentation, Segregated Lists.
+     * - Destroying the allocator invalidates any outstanding pointers returned by `Allocate()`.
      */
     class SlabAllocator
     {
     public:
         /**
-         * @brief Construct the allocator & memory pool.
+         * @brief Construct the allocator and its backing pool.
+         * 
+         * The effective alignment is `max(requested_alignment, sizeof(void*))`.
+         * The final block size is rounded up to that alignment.
          *
-         * The effective alignment is `max(requested_alignment, sizeof(void*))`. Block size is then rounded up to that alignment.
-         *
-         * [Ref] CSAPP Chapter 3.9.3 (Data Alignment)
-         * @param block_size The requested payload size of each block.
-         * @param pool_size The total pool size requested from the OS.
-         * @param alignment The requested alignment. Must be non-zero and a power of 2. The effective alignment is floored to `sizeof(void*)`.
-         * @throws std::invalid_argument If alignment is zero, not a power of 2, or if the pool can't hold at least one effective block.
-         * @throws std::bad_alloc If the OS memory allocation fails.
+         * @param block_size The requested payload size for each block.
+         * @param pool_size The requested backing pool size.
+         * @param alignment The requested alignment. Must be non-zero and a power of 2.
+         * @throws std::invalid_argument If alignment is zero, not a power of 2, or if the pool cannot hold at least one effective block.
+         * @throws std::bad_alloc If the backing-pool allocation fails.
          */
         SlabAllocator(std::size_t block_size, std::size_t pool_size, std::size_t alignment = sizeof(void *));
 
@@ -48,23 +48,21 @@ namespace mcr
         ~SlabAllocator();
 
         /**
-         * @brief Allocate a memory block from the pool.
+         * @brief Allocate a memory block from the backing pool.
          *
          * @return pointer to the allocated memory, or nullptr if the pool is exhausted.
          */
         void *Allocate();
 
         /**
-         * @brief Free an allocated memory block back to the pool.
+         * @brief Return an allocated block to the backing pool.
          *
-         * Push the block back to the head of the free list in O(1) time.
-         * 
          * Contract:
-         * 
+         *
          * - `ptr == nullptr` is allowed and is a no-op.
-         * 
+         *
          * - `ptr` must be a block previously returned by `Allocate()` from this allocator.
-         * 
+         *
          * - Double free, cross-pool free, or passing a non-block pointer is a contract violation (undefined behavior).
          *
          * @param ptr Pointer to the block to be freed.
@@ -72,8 +70,7 @@ namespace mcr
         void Free(void *ptr);
 
         // ---------------------------------------------------------------
-        // Disable copy semantics to prevent Double Free and UB when multiple destructors release the same pool.
-        // [Ref] Effective C++ Item 14 (Think carefully about copying behavior in resource-managing classes) - Prohibit copying RAII objects.
+        // Disable copy semantics for the owning allocator.
         SlabAllocator(const SlabAllocator &) = delete;
         SlabAllocator &operator=(const SlabAllocator &) = delete;
         // ---------------------------------------------------------------
@@ -81,10 +78,6 @@ namespace mcr
     private:
         /**
          * @brief Embedded free list node.
-         *
-         * [Ref 1] OSTEP Chapter 17.2 (Low-level Mechanisms) - Embedding A Free List.
-         *
-         * [Ref 2] CSAPP Chapter 9.9.13 (Explicit Free Lists) - LIFO ordering, first-fit placement.
          */
         struct FreeBlock
         {
@@ -96,16 +89,15 @@ namespace mcr
         std::size_t alignment_;
 
         /**
-         * @brief Pointer to the pool address which requested from OS.
+         * @brief Start address of the backing pool allocated by the underlying allocator/system.
          */
         void *pool_start_;
 
         /**
-         * @brief Store the block which should be allocated first.
+         * @brief Head of the free list; the block to be allocated next.
          */
         FreeBlock *free_list_head_;
     };
 }
-// See also: `ADR-0001` (Allocator Contract), `ADR-0003` (Alignment Policy).
 
 #endif
