@@ -37,6 +37,10 @@ namespace
     }
 }
 
+// ------------------------------------------------------------
+// Core allocation and capacity behavior.
+// ------------------------------------------------------------
+
 TEST(SlabAllocatorTest, AllocateReturnsDistinctBlocks)
 {
     // Compute the actual allocator pool size.
@@ -73,27 +77,6 @@ TEST(SlabAllocatorTest, PoolRemainderDoesNotCreateExtraBlock)
     EXPECT_EQ(allocator.Allocate(), nullptr); // The 3rd allocation should fail because the remainder does not form another whole block.
 }
 
-TEST(SlabAllocatorTest, FreeReusesMostRecentlyFreedBlock)
-{
-    // Compute the actual allocator pool size.
-    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
-    const int block_count = 3;
-    const std::size_t pool_size = block_size * block_count;
-
-    mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
-
-    void *ptr1 = allocator.Allocate();
-    void *ptr2 = allocator.Allocate();
-    void *ptr3 = allocator.Allocate();
-    ASSERT_NE(ptr1, nullptr);
-    ASSERT_NE(ptr2, nullptr);
-    ASSERT_NE(ptr3, nullptr);
-
-    allocator.Free(ptr2);
-    void *ptr_new = allocator.Allocate();
-    EXPECT_EQ(ptr_new, ptr2); // Due to LIFO feature, it should reuse ptr2.
-}
-
 TEST(SlabAllocatorTest, FreeValidPtrRestoresOneAllocationAfterExhaustion)
 {
     // Compute the actual allocator pool size.
@@ -117,36 +100,6 @@ TEST(SlabAllocatorTest, FreeValidPtrRestoresOneAllocationAfterExhaustion)
     ASSERT_NE(recovered, nullptr); // restored once
 
     EXPECT_EQ(allocator.Allocate(), nullptr); // exhausted again
-}
-
-TEST(SlabAllocatorTest, DefaultAllocationIsPointerAligned)
-{
-    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
-
-    mcr::SlabAllocator allocator(sizeof(TestObj), block_size);
-
-    void *ptr = allocator.Allocate();
-    ASSERT_NE(ptr, nullptr);
-
-    uintptr_t addr = reinterpret_cast<uintptr_t>(ptr); // Reinterpret address to integer for arithmetic (Division).
-    EXPECT_EQ(addr % sizeof(void *), 0);               // Check if the address is a multiple of sizeof(void*).
-}
-
-TEST(SlabAllocatorTest, RequestedAlignmentAboveWordSizeIsPreserved)
-{
-    for (size_t count : {2, 4, 8})
-    {
-        const std::size_t alignment = count * sizeof(void *);
-        const std::size_t pool_size = EffectiveBlockSize(sizeof(TestObj), alignment);
-
-        mcr::SlabAllocator allocator(sizeof(TestObj), pool_size, alignment);
-
-        void *ptr = allocator.Allocate();
-        ASSERT_NE(ptr, nullptr);
-
-        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
-        EXPECT_EQ(addr % alignment, 0); // Check if the alignment is preserved.
-    }
 }
 
 TEST(SlabAllocatorTest, FreeingAllBlocksRestoresFullCapacity)
@@ -187,45 +140,9 @@ TEST(SlabAllocatorTest, FreeingAllBlocksRestoresFullCapacity)
     EXPECT_EQ(allocator.Allocate(), nullptr); // Ensure the 101st allocation fails again.
 }
 
-TEST(SlabAllocatorTest, NonPowerOfTwoAlignmentThrowsInvalidArgument)
-{
-    const std::size_t valid_pool_size = EffectiveBlockSize(sizeof(TestObj)) * 2; // sufficient pool size
-
-    EXPECT_THROW({ mcr::SlabAllocator allocator(sizeof(TestObj), valid_pool_size, 17); }, std::invalid_argument);
-}
-
-TEST(SlabAllocatorTest, InsufficientAlignedPoolSizeThrowsInvalidArgument)
-{
-    const std::size_t alignment = 64;
-    const std::size_t effective_block = EffectiveBlockSize(sizeof(TestObj), alignment);
-    const std::size_t insufficient_pool_size = effective_block - sizeof(void *);
-
-    EXPECT_THROW({ mcr::SlabAllocator allocator(sizeof(TestObj), insufficient_pool_size, alignment); }, std::invalid_argument);
-}
-
-TEST(SlabAllocatorTest, AlignmentFloorAtLeastPointerSize)
-{
-    // Try very small alignment, the effective alignment must be >= sizeof(void*).
-    for (size_t alignment : {1, 2, 4})
-    {
-        const std::size_t pool_size = EffectiveBlockSize(sizeof(TestObj), alignment);
-
-        mcr::SlabAllocator allocator(sizeof(TestObj), pool_size, alignment);
-
-        void *ptr = allocator.Allocate();
-        ASSERT_NE(ptr, nullptr);
-
-        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
-        EXPECT_EQ(addr % sizeof(void *), 0); // Check if the alignment is floored to a pointer size.
-    }
-}
-
-TEST(SlabAllocatorTest, ZeroAlignmentThrowsInvalidArgument)
-{
-    const std::size_t valid_pool_size = EffectiveBlockSize(sizeof(TestObj)) * 2; // sufficient pool size
-
-    EXPECT_THROW({ mcr::SlabAllocator allocator(sizeof(TestObj), valid_pool_size, 0); }, std::invalid_argument);
-}
+// ------------------------------------------------------------
+// `Free(nullptr)` special-case behavior.
+// ------------------------------------------------------------
 
 TEST(SlabAllocatorTest, FreeNullptrKeepsAllocatorExhausted)
 {
@@ -276,6 +193,82 @@ TEST(SlabAllocatorTest, FreeNullptrDoesNotInterfereWithSubsequentRestore)
     EXPECT_EQ(allocator.Allocate(), nullptr); // exhausted again
 }
 
+// ------------------------------------------------------------
+// Implementation evidence for free-list reuse behavior.
+// ------------------------------------------------------------
+
+TEST(SlabAllocatorTest, FreeReusesMostRecentlyFreedBlock)
+{
+    // Compute the actual allocator pool size.
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+    const int block_count = 3;
+    const std::size_t pool_size = block_size * block_count;
+
+    mcr::SlabAllocator allocator(sizeof(TestObj), pool_size);
+
+    void *ptr1 = allocator.Allocate();
+    void *ptr2 = allocator.Allocate();
+    void *ptr3 = allocator.Allocate();
+    ASSERT_NE(ptr1, nullptr);
+    ASSERT_NE(ptr2, nullptr);
+    ASSERT_NE(ptr3, nullptr);
+
+    allocator.Free(ptr2);
+    void *ptr_new = allocator.Allocate();
+    EXPECT_EQ(ptr_new, ptr2); // Due to LIFO feature, it should reuse ptr2.
+}
+
+// ------------------------------------------------------------
+// Alignment and block-sizing behavior.
+// ------------------------------------------------------------
+
+TEST(SlabAllocatorTest, DefaultAllocationIsPointerAligned)
+{
+    const std::size_t block_size = EffectiveBlockSize(sizeof(TestObj));
+
+    mcr::SlabAllocator allocator(sizeof(TestObj), block_size);
+
+    void *ptr = allocator.Allocate();
+    ASSERT_NE(ptr, nullptr);
+
+    uintptr_t addr = reinterpret_cast<uintptr_t>(ptr); // Reinterpret address to integer for arithmetic (Division).
+    EXPECT_EQ(addr % sizeof(void *), 0);               // Check if the address is a multiple of sizeof(void*).
+}
+
+TEST(SlabAllocatorTest, AlignmentFloorAtLeastPointerSize)
+{
+    // Try very small alignment, the effective alignment must be >= sizeof(void*).
+    for (size_t alignment : {1, 2, 4})
+    {
+        const std::size_t pool_size = EffectiveBlockSize(sizeof(TestObj), alignment);
+
+        mcr::SlabAllocator allocator(sizeof(TestObj), pool_size, alignment);
+
+        void *ptr = allocator.Allocate();
+        ASSERT_NE(ptr, nullptr);
+
+        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+        EXPECT_EQ(addr % sizeof(void *), 0); // Check if the alignment is floored to a pointer size.
+    }
+}
+
+TEST(SlabAllocatorTest, RequestedAlignmentAboveWordSizeIsPreserved)
+{
+    for (size_t count : {2, 4, 8})
+    {
+        const std::size_t alignment = count * sizeof(void *);
+        const std::size_t pool_size = EffectiveBlockSize(sizeof(TestObj), alignment);
+
+        mcr::SlabAllocator allocator(sizeof(TestObj), pool_size, alignment);
+
+        void *ptr = allocator.Allocate();
+        ASSERT_NE(ptr, nullptr);
+
+        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+        EXPECT_EQ(addr % alignment, 0); // Check if the alignment is preserved.
+    }
+}
+
 TEST(SlabAllocatorTest, BlockSizeRoundsUpToEffectiveAlignment)
 {
     // Compute the essential allocator input values.
@@ -298,4 +291,31 @@ TEST(SlabAllocatorTest, BlockSizeRoundsUpToEffectiveAlignment)
     // Without round-up, the raw size would allow more allocations than 3.
     // Exhaustion on the 4th call supports that the pool was cut using the rounded block size instead.
     EXPECT_EQ(allocator.Allocate(), nullptr);
+}
+
+// ------------------------------------------------------------
+// Constructor failure paths.
+// ------------------------------------------------------------
+
+TEST(SlabAllocatorTest, NonPowerOfTwoAlignmentThrowsInvalidArgument)
+{
+    const std::size_t valid_pool_size = EffectiveBlockSize(sizeof(TestObj)) * 2; // sufficient pool size
+
+    EXPECT_THROW({ mcr::SlabAllocator allocator(sizeof(TestObj), valid_pool_size, 17); }, std::invalid_argument);
+}
+
+TEST(SlabAllocatorTest, ZeroAlignmentThrowsInvalidArgument)
+{
+    const std::size_t valid_pool_size = EffectiveBlockSize(sizeof(TestObj)) * 2; // sufficient pool size
+
+    EXPECT_THROW({ mcr::SlabAllocator allocator(sizeof(TestObj), valid_pool_size, 0); }, std::invalid_argument);
+}
+
+TEST(SlabAllocatorTest, InsufficientAlignedPoolSizeThrowsInvalidArgument)
+{
+    const std::size_t alignment = 64;
+    const std::size_t effective_block = EffectiveBlockSize(sizeof(TestObj), alignment);
+    const std::size_t insufficient_pool_size = effective_block - sizeof(void *);
+
+    EXPECT_THROW({ mcr::SlabAllocator allocator(sizeof(TestObj), insufficient_pool_size, alignment); }, std::invalid_argument);
 }
