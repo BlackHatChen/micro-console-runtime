@@ -90,6 +90,11 @@ namespace mcr
         static constexpr std::size_t kMaxClassSize = 1024;
 
         /**
+         * @brief Pre-allocate 100 blocks for each allocator.
+         */
+        static constexpr std::size_t kBlocksPerClass = 100;
+
+        /**
          * @brief Owns the per-class allocators.
          */
         std::array<std::unique_ptr<SlabAllocator>, kNumClasses> allocators_;
