@@ -5,6 +5,10 @@
 #include <cstdint>
 #include <stdexcept>
 
+// ------------------------------------------------------------
+// Allocation and routing success path.
+// ------------------------------------------------------------
+
 TEST(SlabManagerTest, OverAlignmentContract)
 {
     mcr::SlabManager manager;
@@ -22,6 +26,42 @@ TEST(SlabManagerTest, OverAlignmentContract)
     EXPECT_EQ(addr1 % 64, 0);
     EXPECT_EQ(addr2 % 64, 0);
 }
+
+TEST(SlabManagerTest, PerClassAlignmentMatrix)
+{
+    constexpr std::array<std::size_t, 7> kClasses{16, 32, 64, 128, 256, 512, 1024};
+
+    // Each class must align payloads to at least its class size.
+    for (std::size_t cls : kClasses)
+    {
+        mcr::SlabManager manager;
+        const std::size_t prev = cls / 2;
+        const std::size_t requests[2] = {
+            (cls == 16 ? 1 : (prev + 1)), // Left inner point in (prev, cls].
+            cls                           // Exact class boundary.
+        };
+
+        for (std::size_t request : requests)
+        {
+            SCOPED_TRACE(testing::Message() << "class = " << cls << ", request size = " << request);
+
+            void *ptr1 = manager.Allocate(request);
+            void *ptr2 = manager.Allocate(request);
+            ASSERT_NE(ptr1, nullptr);
+            ASSERT_NE(ptr2, nullptr);
+
+            // Returned block pointers must be aligned to at least the class minimum.
+            uintptr_t addr1 = reinterpret_cast<uintptr_t>(ptr1);
+            uintptr_t addr2 = reinterpret_cast<uintptr_t>(ptr2);
+            EXPECT_EQ(addr1 % cls, 0);
+            EXPECT_EQ(addr2 % cls, 0);
+        }
+    }
+}
+
+// ------------------------------------------------------------
+// Deallocation and reuse behavior.
+// ------------------------------------------------------------
 
 TEST(SlabManagerTest, OverAlignedFreeRoutingIsSymmetric)
 {
@@ -73,6 +113,10 @@ TEST(SlabManagerTest, DefaultAlignedDeallocationReuseProxy)
     EXPECT_EQ(ptr1, ptr2);
 }
 
+// ------------------------------------------------------------
+// Allocation failure and invalid input.
+// ------------------------------------------------------------
+
 TEST(SlabManagerTest, AllocationExceedingMaxClassSizeReturnsNullptr)
 {
     mcr::SlabManager manager;
@@ -89,38 +133,6 @@ TEST(SlabManagerTest, AllocationWhoseAlignmentExceedsMaxClassSizeReturnsNullptr)
     EXPECT_EQ(manager.Allocate(16, 2048), nullptr);
 }
 
-TEST(SlabManagerTest, PerClassAlignmentMatrix)
-{
-    constexpr std::array<std::size_t, 7> kClasses{16, 32, 64, 128, 256, 512, 1024};
-
-    // Each class must align payloads to at least its class size.
-    for (std::size_t cls : kClasses)
-    {
-        mcr::SlabManager manager;
-        const std::size_t prev = cls / 2;
-        const std::size_t requests[2] = {
-            (cls == 16 ? 1 : (prev + 1)), // Left inner point in (prev, cls].
-            cls                           // Exact class boundary.
-        };
-
-        for (std::size_t request : requests)
-        {
-            SCOPED_TRACE(testing::Message() << "class = " << cls << ", request size = " << request);
-
-            void *ptr1 = manager.Allocate(request);
-            void *ptr2 = manager.Allocate(request);
-            ASSERT_NE(ptr1, nullptr);
-            ASSERT_NE(ptr2, nullptr);
-
-            // Returned block pointers must be aligned to at least the class minimum.
-            uintptr_t addr1 = reinterpret_cast<uintptr_t>(ptr1);
-            uintptr_t addr2 = reinterpret_cast<uintptr_t>(ptr2);
-            EXPECT_EQ(addr1 % cls, 0);
-            EXPECT_EQ(addr2 % cls, 0);
-        }
-    }
-}
-
 TEST(SlabManagerTest, ZeroAlignmentThrowsInvalidArgument)
 {
     mcr::SlabManager manager;
@@ -134,6 +146,10 @@ TEST(SlabManagerTest, NonPowerOfTwoAlignmentThrowsInvalidArgument)
 
     EXPECT_THROW({ manager.Allocate(16, 24); }, std::invalid_argument);
 }
+
+// ------------------------------------------------------------
+// `Free(nullptr)` special-case behavior.
+// ------------------------------------------------------------
 
 TEST(SlabManagerTest, OverAlignedFreeNullptrIsNoOp)
 {
