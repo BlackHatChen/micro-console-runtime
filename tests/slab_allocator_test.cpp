@@ -2,7 +2,8 @@
 #include "slab_allocator.h"
 #include <cstddef>
 #include <vector>
-#include <cstdlib>
+#include <cstdint>
+#include <stdexcept>
 
 // Test object used for block-size and alignment-related allocator tests.
 struct TestObj
@@ -184,11 +185,20 @@ TEST(SlabAllocatorTest, FreeNullptrDoesNotInterfereWithSubsequentRestore)
 
     ASSERT_EQ(allocator.Allocate(), nullptr); // exhausted
 
+    // Create an observable two-node free-list prefix.
+    allocator.Free(ptr2);
+    allocator.Free(ptr1);
+
+    // Free(nullptr) must not change the order.
     allocator.Free(nullptr);
 
-    allocator.Free(ptr2);
-    void *recovered = allocator.Allocate();
-    ASSERT_NE(recovered, nullptr); // restored once
+    void *recovered1 = allocator.Allocate();
+    void *recovered2 = allocator.Allocate();
+    ASSERT_NE(recovered1, nullptr);
+    ASSERT_NE(recovered2, nullptr);
+
+    EXPECT_EQ(recovered1, ptr1);
+    EXPECT_EQ(recovered2, ptr2);
 
     EXPECT_EQ(allocator.Allocate(), nullptr); // exhausted again
 }
