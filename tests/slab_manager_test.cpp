@@ -21,8 +21,8 @@ TEST(SlabManagerTest, OverAlignmentContract)
     ASSERT_NE(ptr2, nullptr);
 
     // Verify the addresses are perfectly aligned to 64 bytes.
-    uintptr_t addr1 = reinterpret_cast<uintptr_t>(ptr1);
-    uintptr_t addr2 = reinterpret_cast<uintptr_t>(ptr2);
+    std::uintptr_t addr1 = reinterpret_cast<std::uintptr_t>(ptr1);
+    std::uintptr_t addr2 = reinterpret_cast<std::uintptr_t>(ptr2);
     EXPECT_EQ(addr1 % 64, 0);
     EXPECT_EQ(addr2 % 64, 0);
 }
@@ -51,8 +51,8 @@ TEST(SlabManagerTest, PerClassAlignmentMatrix)
             ASSERT_NE(ptr2, nullptr);
 
             // Returned block pointers must be aligned to at least the class minimum.
-            uintptr_t addr1 = reinterpret_cast<uintptr_t>(ptr1);
-            uintptr_t addr2 = reinterpret_cast<uintptr_t>(ptr2);
+            std::uintptr_t addr1 = reinterpret_cast<std::uintptr_t>(ptr1);
+            std::uintptr_t addr2 = reinterpret_cast<std::uintptr_t>(ptr2);
             EXPECT_EQ(addr1 % cls, 0);
             EXPECT_EQ(addr2 % cls, 0);
         }
@@ -74,8 +74,8 @@ TEST(SlabManagerTest, OverAlignedFreeRoutingIsSymmetric)
     ASSERT_NE(ptr2, nullptr);
 
     // Both returned pointers should satisfy the requested alignment.
-    uintptr_t addr1 = reinterpret_cast<uintptr_t>(ptr1);
-    uintptr_t addr2 = reinterpret_cast<uintptr_t>(ptr2);
+    std::uintptr_t addr1 = reinterpret_cast<std::uintptr_t>(ptr1);
+    std::uintptr_t addr2 = reinterpret_cast<std::uintptr_t>(ptr2);
     ASSERT_EQ(addr1 % 64, 0);
     ASSERT_EQ(addr2 % 64, 0);
 
@@ -90,7 +90,7 @@ TEST(SlabManagerTest, OverAlignedFreeRoutingIsSymmetric)
 
     EXPECT_EQ(ptr3, ptr2);
 
-    uintptr_t addr3 = reinterpret_cast<uintptr_t>(ptr3);
+    std::uintptr_t addr3 = reinterpret_cast<std::uintptr_t>(ptr3);
     EXPECT_EQ(addr3 % 64, 0);
 }
 

@@ -241,14 +241,14 @@ TEST(SlabAllocatorTest, DefaultAllocationIsPointerAligned)
     void *ptr = allocator.Allocate();
     ASSERT_NE(ptr, nullptr);
 
-    uintptr_t addr = reinterpret_cast<uintptr_t>(ptr); // Reinterpret address to integer for arithmetic (Division).
+    std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(ptr); // Reinterpret address to integer for arithmetic (Division).
     EXPECT_EQ(addr % sizeof(void *), 0);               // Check if the address is a multiple of sizeof(void*).
 }
 
 TEST(SlabAllocatorTest, AlignmentFloorAtLeastPointerSize)
 {
     // Try very small alignment, the effective alignment must be >= sizeof(void*).
-    for (size_t alignment : {1, 2, 4})
+    for (std::size_t alignment : {1, 2, 4})
     {
         const std::size_t pool_size = EffectiveBlockSize(sizeof(TestObj), alignment);
 
@@ -257,14 +257,14 @@ TEST(SlabAllocatorTest, AlignmentFloorAtLeastPointerSize)
         void *ptr = allocator.Allocate();
         ASSERT_NE(ptr, nullptr);
 
-        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+        std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(ptr);
         EXPECT_EQ(addr % sizeof(void *), 0); // Check if the alignment is floored to a pointer size.
     }
 }
 
 TEST(SlabAllocatorTest, RequestedAlignmentAboveWordSizeIsPreserved)
 {
-    for (size_t count : {2, 4, 8})
+    for (std::size_t count : {2, 4, 8})
     {
         const std::size_t alignment = count * sizeof(void *);
         const std::size_t pool_size = EffectiveBlockSize(sizeof(TestObj), alignment);
@@ -274,7 +274,7 @@ TEST(SlabAllocatorTest, RequestedAlignmentAboveWordSizeIsPreserved)
         void *ptr = allocator.Allocate();
         ASSERT_NE(ptr, nullptr);
 
-        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+        std::uintptr_t addr = reinterpret_cast<std::uintptr_t>(ptr);
         EXPECT_EQ(addr % alignment, 0); // Check if the alignment is preserved.
     }
 }

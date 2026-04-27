@@ -52,7 +52,7 @@ namespace mcr
 
         // Link the free list across the pool blocks.
         free_list_head_ = static_cast<FreeBlock *>(pool_start_);
-        uintptr_t current_byte_ptr = reinterpret_cast<uintptr_t>(pool_start_);
+        std::uintptr_t current_byte_ptr = reinterpret_cast<std::uintptr_t>(pool_start_);
         for (std::size_t i = 0; i < block_count - 1; i++)
         {
             FreeBlock *current_block = reinterpret_cast<FreeBlock *>(current_byte_ptr);
