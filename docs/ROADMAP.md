@@ -1,28 +1,28 @@
 # Micro Console Runtime - Engineering Roadmap
-- This roadmap lists version goals and acceptance for v0.x and the final integration at v1.0.0.
-- **Scope (v0.x):** memory subsystem (allocator + tests/benchmark/CI/tooling); other subsystems are planned (not delivered yet).
-- See [README → Current Status](../README.md#current-status). Commands live in [README → Quick Start](../README.md#quick-start).
+- This roadmap tracks version goals and acceptance across v0.x, with a later integration reserved beyond the current allocator scope.
+- **Scope (v0.x):** memory subsystem work centered on the allocator, with supporting validation and tooling. Other subsystems are still planned.
+- See [README → Current Status](../README.md#current-status). Commands references are listed in [README → Quick Start](../README.md#quick-start).
 
 ---
 
 ## v0.1.0: Core Infrastructure & Allocator
-**Goal:** Make the build reproducible and provide a minimal slab allocator.
+**Goal:** Establish a reproducible build setup and deliver a minimal slab allocator.
 
-**Why/Context:** Keep the base stable so later changes remain traceable.
+**Why/Context:** Establish a foundation for later versions.
 - [x] **Build System & Environment**
   - Project structure (`src`, `include`, `tests`, `docs`).
-  - Modern CMake with strict warnings.
+  - CMake build setup with strict warnings enabled.
   - Docker image for reproducible builds.
-- [x] **Quality Control Hooks**
+- [x] **Repository Workflow Setup**
   - Git hooks and a commit message template.
 - [x] **Slab Allocator**
-  - Fixed-size blocks with embedded free lists (O(1) `Allocate`/`Free`).
+  - Fixed-size blocks with embedded free lists.
   - **Historical alignment:** `sizeof(void*)`.
 
 **Acceptance**
-- Configure and build via CMake on the reference host (see [README → Quick Start](../README.md#quick-start)).
-- Allocator public API is present (O(1) `Allocate`/`Free`).
-- Commit template/hooks are available from v0.1.0.
+- Configure and build via CMake using the documented setup.
+- The allocator's API is available and supports O(1) `Allocate`/`Free`.
+- Git hooks and the commit message template are available in the repository.
 
 **References**
 - [README → Quick Start](../README.md#quick-start)
@@ -33,20 +33,20 @@
 ---
 
 ## v0.2.0: Reliability, Tests, and CI
-**Goal:** Introduce automated tests, CI, and a benchmark method.
+**Goal:** Introduce automated tests, CI, and an initial allocator benchmark.
 
-**Why/Context:** Make changes verifiable and prevent regressions.
+**Why/Context:** Make changes verifiable and reduce regression risk.
 - [x] **Unit Tests (GoogleTest)**
-  - Cover the allocator's basic contract (`Allocate`/`Free`) success, OOM, and boundary cases.
+  - Cover the allocator's core success, OOM, and boundary cases.
 - [x] **CI Pipeline**
   - GitHub Actions workflow builds and runs tests on a Linux runner.
 - [x] **Benchmark (Google Benchmark)**
-  - Release-mode benchmark that compares the slab allocator vs `malloc` on a default small-object workload.
+  - Add an initial release-mode benchmark for allocator-vs-malloc comparison.
 
 **Acceptance**
-- CI green on a clean Linux runner: configure, build, and run tests using the commands in [README → Quick Start](../README.md#quick-start).
-- Unit tests cover: success path, OOM behavior, and boundary conditions.
-- A release benchmark (Google Benchmark) runs and reports results; on the same machine and the default workload, slab is faster than `malloc`.
+- Unit tests cover allocator success, OOM behavior, and boundary conditions.
+- CI green on a clean Linux runner: configure, build, and run tests.
+- An initial allocator benchmark is present and runnable for a fixed small-object batch workload.
 
 **References**
 - [README → Quick Start](../README.md#quick-start)
@@ -56,82 +56,88 @@
 
 ---
 
-## v0.3.0: Hardware Optimization & Architecture
-**Goal:** Introduce multi-size-class routing without linear scans.
+## v0.3.0: Alignment Support & Routing Architecture
+**Goal:** Introduce alignment-aware allocation and multi-size-class routing without linear scans.
 
-**Why/Context:** Extend the v0.1.x single-size slab into multiple size classes.
-- [x] **Arbitrary Alignment Engine**
-  - Satisfy user-specified alignment with a platform floor (effective alignment = `max(alignment_, sizeof(void*))`).
-  - Cross-platform aligned allocation APIs (`_aligned_malloc` for Windows, `posix_memalign` for POSIX).
-- [x] **Cache Coherence & SIMD Compatibility**
-  - Enable cache-line (64-byte) alignment for designated classes/paths to reduce the risk of false sharing.
-  - Validate class-specific alignment (e.g., NEON 16-byte, AVX 32-byte).
+**Why/Context:** Extend the single-size slab into multiple size classes.
+- [x] **Arbitrary Alignment Support**
+  - Satisfy user-specified alignment with a platform floor by `max(requested alignment, sizeof(void*))`.
+  - Cross-platform aligned allocation API (`_aligned_malloc` for Windows, `posix_memalign` for POSIX).
+- [x] **Representative Alignment Cases**
+  - Support class-specific alignment outcomes, including 16-byte, 32-byte, and 64-byte requests.
+  - Validate that aligned requests route to size class that satisfy the requested alignment.
 - [x] **Segregated Free Lists (Slab Classes)**
   - `SlabManager` manages multiple size classes (16, 32, 64, 128, 256, 512, 1024 bytes).
-  - O(1) size-class routing (no linear scans); fragmentation controlled per class.
+  - O(1) size-class routing across fixed-capacity segregated classes.
 
 **Acceptance**
-- Targeted alignment tests pass for representative classes: SIMD (32-byte) and cache-line (64-byte).
-- Effective alignment policy is documented: requests with `alignment_ ≥ class_min` are satisfied; the platform floor is `sizeof(void*)`.
-- Routing is validated as O(1) by design notes: bit-scan-based mapping (`_BitScanReverse` / `__builtin_clzll`), **no linear scans**.
+- Targeted alignment tests pass for representative aligned request cases.
+- The effective alignment is satisfied by `max(requested alignment, sizeof(void*))`.
+- Size-class routing is implemented without linear scans and is documented as O(1).
 
 **References**
 - [Allocator Header](../include/slab_allocator.h)
 - [Allocator Source](../src/slab_allocator.cpp)
+- [Allocator Test](../tests/slab_allocator_test.cpp)
 - [Manager Header](../include/slab_manager.h)
 - [Manager Source](../src/slab_manager.cpp)
-- [Allocator Test](../tests/slab_allocator_test.cpp)
 - [Manager Test](../tests/slab_manager_test.cpp)
 
 ---
 
-## v0.3.1: Stabilization & Evidence
-**Goal:** Strengthen correctness evidence, align public contracts with implementation, and fix correctness issues.
+## v0.3.1: Stabilization & Validation
+**Goal:** Stabilize allocator and manager behavior by aligning tests, public contracts, and code comments.
 
-**Why Context:** Preserve external scope while making allocator/manager behavior more explicit, testable, and less error-prone.
-- Stabilization-first: bug fixes, contract-alignment changes, tests, CI, and in-code notes are allowed.
+**Why/Context:** Keep the scope stable while making allocator and manager behavior clearer and more testable.
+- Stabilization-first: bug fixes, contract-alignment changes, tests, CI, and comments are allowed.
 - No new subsystem scope is introduced.
-- Changes may tighten API usage requirements when needed to prevent silent misuse.
-- Keep scope tight to avoid churn and regressions.
+- Keep scope tight to avoid unnecessary changes and regressions.
 
 **Acceptance**
-- Routing symmetry for `(size, alignment)` is enforced and covered by tests.
-- Alignment validation is enforced at the manager allocation entry.
-- Allocator and manager header contracts are aligned with current behavior.
-- CI is green using the commands in README Quick Start.
+- Routing symmetry for allocation and deallocation with the same `(size, alignment)` pair is covered by tests.
+- Alignment validation is performed at the manager allocation entry.
+- Allocator and manager code, tests, and public contract wording are aligned with current behavior.
 
 ---
 
-## v0.4.0: Memory Safety & Corruption Detection
-Core fail-fast diagnostics for detecting runtime memory corruption in a constrained environment.
-- [ ] **Compile-Time Safety Toggles**
-  - Implement `#ifdef MCR_DEBUG_MEMORY` toggles to ensure absolute zero-overhead in Release builds.
-- [ ] **Corruption Detection (Sanitizers)**
-  - **Redzone Protection (Canaries)**: Insert `0xDEADBEEF` magic patterns before/after allocated blocks to catch out-of-bounds (OOB) writes.
-  - **Poisoning**: Fill freed memory blocks with `0xCCCCCCCC` to ensure Use-After-Free (UAF) anomalies trigger immediate, predictable crashes.
-  - **Endian-Safe Implementation**: Ensure magic numbers are reliably verifiable across different CPU architectures (x86/ARM).
-- [ ] **Automated Memory Validation (CI)**
-  - Implement **GoogleTest Death Tests** to validate fail-fast mechanisms upon memory corruption.
-  - Add separated **GitHub Actions pipelines**: Debug (Sanitizers enabled) for safety validation, and Release for throughput benchmarking.
+## v0.4.0: Debug Memory Diagnostics & Corruption Detection
+**Goal:** Introduce debug-oriented diagnostics for detecting memory corruption and invalid memory use.
+
+**Why/Context:** Add fail-fast validation mechanisms that help detect memory corruption earlier.
+- [ ] **Debug-Only Safety Toggles**
+  - Enable memory diagnostics only in debug builds so release builds do not include these checks.
+- [ ] **Corruption Detection**
+  - Add diagnostics for out-of-bounds writes and invalid reuse of freed memory.
+- [ ] **Validation Coverage**
+  - Add automated validation for fail-fast diagnostics and ensure they can be run in debug/CI workflows.
+
+**Acceptance**
+- Debug-only memory diagnostics can be enabled without changing normal release behavior.
+- Out-of-bounds and invalid reuse checks are present in debug-oriented paths.
+- Diagnostic checks have automated validation coverage.
 
 ---
 
-## v0.5.0: Memory Diagnostics & Advanced Profiling
-Advanced state tracking, recovery mechanisms, and cross-platform verification.
-- [ ] **Lifecycle & Leak Diagnostics**
-  - **Active Allocation Registry**: Track allocated block lifecycles to detect memory leaks.
-  - **Allocation Site Tracking**: Capture `__FILE__` and `__LINE__` via macros during allocation to pinpoint the exact source of leaks or redzone violations.
-  - **Fragmentation Analysis**: Generate **Memory Heatmaps** based on registry data for visual fragmentation debugging.
-- [ ] **Advanced Safety & Recovery**
-  - **Custom OOM Handler**: Implement an Out-of-Memory callback mechanism, allowing the application layer to flush caches or perform emergency saves before aborting.
-  - **Thread Ownership Assertion**: Record `std::this_thread::get_id()` upon allocation to detect illegal cross-thread deallocations in lock-free contexts.
-- [ ] **Cross-Platform CI Verification**
-  - **ARM Architecture Verification**: Utilize QEMU within CI to verify alignment constraints and endian-safe redzones on ARM toolchains.
+## v0.5.0: Memory Diagnostics & Observability
+**Goal:** Extend allocator diagnostics with lifecycle visibility, failure diagnostics, and validation infrastructure.
+
+**Why/Context:** Extend diagnostics work with better visibility into allocator state and broader validation support.
+- [ ] **Allocation Lifecycle Diagnostics**
+  - Track active allocations and surface leak-related state.
+  - Include allocation-site information for leaks and invalid-use diagnostics.
+  - Summarize fragmentation-related state for better allocator visibility.
+- [ ] **Failure and Usage Diagnostics**
+  - Provide diagnostics or integration points for allocator failure handling.
+  - Add debug checks for invalid ownership or usage patterns where applicable.
+- [ ] **Cross-Platform Validation**
+  - Expand validation workflows to cover additional target environments where relevant.
+
+**Acceptance**
+- Allocation-lifecycle diagnostics provide visibility into active allocations and leak-related state.
+- Additional diagnostic information is available for failure or invalid-usage scenarios.
+- Validation workflows can cover these diagnostics in at least one additional target environment or configuration.
 
 ---
 
-## v1.0.0: System Integration & Delivery
-Full runtime integration with simulation subsystems.
-- [ ] **Subsystem Integration**
-- [ ] **Cross-Platform Verification**
-- [ ] **Documentation**: API Reference generation using Doxygen.
+## v1.0.0: Future Runtime Integration Milestone
+**Goal:** Reserve a later milestone for broader runtime integration beyond the current allocator-centored scope.
