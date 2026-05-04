@@ -6,73 +6,103 @@
 #include <array>
 #include <memory>
 
-namespace mcr {
+namespace mcr
+{
     /**
-     * @brief Manage multiple size classes of SlabAllocator.
+     * @brief Manages multiple `SlabAllocator` for power-of-2 size classes.
+     *
+     * Routes variable-sized allocation requests to segregated size classes.
+     *
+     * Notes:
+     *
+     * - Requests are routed to the smallest managed size class that satisfies `max(size, alignment)`.
      * 
-     * Implement Segregated Free Lists to handle variable-sized allocations.
+     * - `Allocate()` and `Free()` must use the same `(size, alignment)` pair so that deallocation routes back to the same size class.
      * 
-     * [Ref] OSTEP Chapter 17 (Free-Space Management) - Segregated Lists.
+     * - Size-class routing is O(1).
      */
-    class SlabManager {
+    class SlabManager
+    {
     public:
         /**
-         * @brief Construct with predefined general size classes.
+         * @brief Construct the manager and initialize all of the managed per-class allocators.
          * 
-         * It will initialize multiple SlabAllocators (Ex: 16, 32, 64 bytes...).
+         * Initializes one `SlabAllocator` for each size class managed by the current small-object policy.
          */
         SlabManager();
 
         /**
-         * @brief RAII will automatically clean up all managed allocators.
+         * @brief Destroy the manager and release its managed allocators.
          */
         ~SlabManager() = default;
 
         /**
-         * @brief Allocate memory by routing to the best-fit size class.
-         * 
-         * Decided by requested memory size or alignment (the maximum one).
-         * 
+         * @brief Allocate memory by routing to the smallest satisfying size class.
+         *
          * @param size The requested memory size.
-         * @param alignment The requested alignment (Default to a word size).
-         * @return Pointer to the allocated memory address 
-         * (nullptr if the pool is exhausted / the required size exceeds the maximum size.)
+         * @param alignment The requested alignment. Must be non-zero and a power of 2. The same alignment must be supplied to `Free()` for symmetric routing.
+         * @return Pointer to the allocated memory, or nullptr if the target size class is exhausted or if `max(size, alignment)` exceeds the maximum managed class size.
+         * @throws std::invalid_argument If `alignment` is zero or not a power of 2.
          */
-        void* Allocate(std::size_t size, std::size_t alignment = sizeof(void*));
+        void *Allocate(std::size_t size, std::size_t alignment = sizeof(void *));
 
         /**
          * @brief Free memory back to the correct size class.
+         *
+         * `Free()` requires `(size, alignment)` to route back to the correct size class.
+         *
+         * Contract:
+         *
+         * - `ptr == nullptr` is allowed and is a no-op.
+         *
+         * - `size` and `alignment` must match the values used at the allocation site.
          * 
-         * Utilizes C++14 Sized Deallocation semantics to avoid metadata headers.
-         * Provide the size to allow O(1) route back to the correct pool.
-         * 
+         * - Passing a mismatched `(size, alignment)` pair, a non-owned pointer, a non-block pointer, or double-freeing a block is a contract violation (undefined behavior).
+         *
          * @param ptr Pointer to the memory to be freed.
-         * @param size The size originally requested, for routing back to the correct pool.
+         * @param size The requested size (same value used at the allocation site).
+         * @param alignment The requested alignment (same value used at the allocation site).
          */
-        void Free(void* ptr, std::size_t size);
+        void Free(void *ptr, std::size_t size, std::size_t alignment);
 
-        // Disable copy semantics to prevent Double Free of the entire manager.
-        SlabManager(const SlabManager&) = delete;
-        SlabManager& operator=(const SlabManager&) = delete;
+        // Disable copy semantics for the manager.
+        SlabManager(const SlabManager &) = delete;
+        SlabManager &operator=(const SlabManager &) = delete;
 
     private:
-        // Define the size classes (Powers of 2, from 16 to 1024 bytes).
+        /**
+         * @brief Number of managed size classes.
+         */
         static constexpr std::size_t kNumClasses = 7;
 
-        // Data (8-byte) + Address (8-byte)
+        /**
+         * @brief Smallest managed size class under the current small-object policy.
+         * 
+         * Requests below this size are rounded up to the minimum class size.
+         */
         static constexpr std::size_t kMinClassSize = 16;
 
-        // Less than a page size (4KB). The slab allocator is for the small size objects.
-        static constexpr std::size_t kMaxClassSize = 1024; 
-        
-        // Array of unique_ptr to manage the lifecycle of the allocators.
-        // [Ref] Effective C++ Item 13 (Use object to manage resources).
+        /**
+         * @brief Largest managed size class under the current small-object policy.
+         * 
+         * Requests above this size fall outside the range handled by `SlabManager`.
+         */
+        static constexpr std::size_t kMaxClassSize = 1024;
+
+        /**
+         * @brief Pre-allocate 100 blocks for each allocator.
+         */
+        static constexpr std::size_t kBlocksPerClass = 100;
+
+        /**
+         * @brief Owns the per-class allocators.
+         */
         std::array<std::unique_ptr<SlabAllocator>, kNumClasses> allocators_;
 
         /**
-         * @brief Calculate the size class index for a given size.
-         * 
-         * Maps size to index: 16->0, 32->1, 64->2, 128->3, 256->4, 512->5, 1024->6
+         * @brief Compute the size class index for a given size.
+         *
+         * Maps size classes to indices: 16 -> 0, 32 -> 1, 64 -> 2, 128 -> 3, 256 -> 4, 512 -> 5, 1024 -> 6.
          */
         std::size_t GetClassIndex(std::size_t size) const;
     };

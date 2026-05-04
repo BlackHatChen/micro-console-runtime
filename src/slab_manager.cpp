@@ -1,72 +1,76 @@
 #include "slab_manager.h"
+#include <cstddef>
 #include <stdexcept>
+#include <algorithm>
 
 #if defined(_WIN32) || defined(_WIN64)
-    #include <intrin.h> // for _BitScanReverse
+#include <intrin.h> // for _BitScanReverse
 #endif
 
-namespace mcr {
-    SlabManager::SlabManager() {
-        // Sizes: 16, 32, 64, 128, 256, 512, 1024 bytes
-        std::size_t current_block_size = kMinClassSize;
-        for (std::size_t i = 0; i < kNumClasses; i++) {
-            // Pre-allocate 100 blocks for each allocator. 
-            std::size_t pool_size = current_block_size * 100;
-            // Make alignment equals to block size to prevent False Sharing.
-            // [Ref] Effective Modern C++ Item 21 (Prefer std::make_unique and std::make_shared to direct use of new.)
-            allocators_[i] = std::make_unique<SlabAllocator>(current_block_size, pool_size, current_block_size);
+namespace mcr
+{
+    SlabManager::SlabManager()
+    {
+        std::size_t current_block_size = kMinClassSize; // Start from the smallest managed class size.
+
+        for (std::size_t i = 0; i < kNumClasses; i++)
+        {
+            std::size_t pool_size = current_block_size * kBlocksPerClass;
+            allocators_[i] = std::make_unique<SlabAllocator>(current_block_size, pool_size, current_block_size); // Align each class to its block size.
             current_block_size *= 2;
         }
     }
 
-    std::size_t SlabManager::GetClassIndex(std::size_t size) const {
-        // Defensive Checks
-        if (size <= kMinClassSize) { // The requested size <= 16: Class 0 allocator.
+    std::size_t SlabManager::GetClassIndex(std::size_t size) const
+    {
+        if (size <= kMinClassSize)
+        {
             return 0;
         }
-        if (size > kMaxClassSize) {
+        if (size > kMaxClassSize)
+        {
             throw std::invalid_argument("Size exceeds maximum managed class size.");
         }
 
-        // O(1) Size Routing (Using CLZ/BSR instructions)
-        // Ensure the size wouldn't be pushed into the next class when it's powers of 2.
-        std::size_t s = size - 1;
+        std::size_t s = size - 1; // Keeps exact powers of 2 in their own class.
         unsigned long highest_bit_index = 0;
 #if defined(_WIN32) || defined(_WIN64)
-    #ifdef _WIN64 // BSR: Scan from left to right for the first 1 and return its index position.
+#ifdef _WIN64
         _BitScanReverse64(&highest_bit_index, s);
-    #else
-        _BitScanReverse(&highest_bit_index, s);
-    #endif
 #else
-        // CLZ: Return the count of leading zeros.
-        // Calculate the index of the highest bit = (64 - 1) - CLZ.
+        _BitScanReverse(&highest_bit_index, s);
+#endif
+#else
         highest_bit_index = 63 - __builtin_clzll(static_cast<unsigned long long>(s));
 #endif
-
-        // Ex. 1: size=17, s=16 (10000 in binary), the index of the highest bit=4, 4 - 3 = 1, Index 1 (32 bytes).
-        // Ex. 2: size=33, s=32 (100000 in binary), the index of the highest bit=5, 5 - 3 = 2, Index 2 (64 bytes).
         return static_cast<std::size_t>(highest_bit_index - 3);
     }
 
-    void* SlabManager::Allocate(std::size_t size, std::size_t alignment) {
-        if (size > kMaxClassSize) {
+    void *SlabManager::Allocate(std::size_t size, std::size_t alignment)
+    {
+        if (alignment == 0 || (alignment & (alignment - 1)) != 0)
+        {
+            throw std::invalid_argument("Alignment must be non-zero and a power of 2.");
+        }
+
+        std::size_t target_size = std::max(size, alignment); // Ensure the target block size could satisfy both size and alignment.
+        if (target_size > kMaxClassSize)
+        {
             return nullptr;
         }
-        
-        // Ensure the target block size could satisfy both size and alignment.
-        std::size_t target_size = std::max(size, alignment);
-        std::size_t class_idx = GetClassIndex(target_size);
+        std::size_t class_idx = GetClassIndex(target_size); // Route by `max(size, alignment)`, `Free()` uses the same policy.
         return allocators_[class_idx]->Allocate();
     }
 
-    void SlabManager::Free(void* ptr, std::size_t size) {
-        if (!ptr) {
+    void SlabManager::Free(void *ptr, std::size_t size, std::size_t alignment)
+    {
+        if (!ptr)
+        {
             return;
         }
         
-        // Rely on input size to route back to the correct size allocator.
-        std::size_t class_idx = GetClassIndex(size);
+        std::size_t target_size = std::max(size, alignment);
+        std::size_t class_idx = GetClassIndex(target_size); // Route back using the same policy as Allocate().
         allocators_[class_idx]->Free(ptr);
     }
 }

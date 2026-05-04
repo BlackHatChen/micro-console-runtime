@@ -1,69 +1,138 @@
 # Micro Console Runtime - Engineering Roadmap
-The project simulates a constrained embedded runtime environment.
-This document outlines the development milestones for the project.
+- This roadmap tracks version goals and acceptance across v0.x, with a later integration milestone reserved for broader runtime work.
+- **Scope (v0.x):** memory subsystem work centered on the allocator, with supporting validation and tooling. Other subsystems are still planned.
+- See [README → Current Status](../README.md#current-status). Related commands are listed in [README → Quick Start](../README.md#quick-start).
+
+---
 
 ## v0.1.0: Core Infrastructure & Allocator
-Foundation of the runtime environment with a deterministic memory model.
+**Goal:** Establish a reproducible build setup and deliver a minimal slab allocator.
+
+**Why/Context:** Provide a stable starting point for later versions.
 - [x] **Build System & Environment**
-  - Project structure design (src, include, tests, docs).
-  - CMake-based build system with enforced compiler flags (`-Wall -Wextra -Werror`).
-  - Dockerized development container for reproducible builds.
-- [x] **Quality Control Hooks**
-  - Git Hooks infrastructure and commit template for enforcing Conventional Commits.
-- [x] **Slab Allocator Implementation**
-  - Fixed-size block partitioning strategies.
-  - O(1) allocation/free time complexity (Using embedded free lists).
-  - Memory alignment (Aligned to a word size).
+  - Project structure (`src`, `include`, `tests`, `docs`).
+  - CMake build setup with strict warnings enabled.
+  - Docker image for reproducible builds.
+- [x] **Repository Workflow Setup**
+  - Git hooks and a commit message template.
+- [x] **Slab Allocator**
+  - Fixed-size blocks with embedded free lists.
+  - **Historical alignment:** `sizeof(void*)`.
 
-## v0.2.0: Reliability, Testing and CI
-Enhancing system stability through automated testing and continuous integration.
-- [x] **Automated Testing Framework**
-  - Integration of **Google Test** by CMake FetchContent.
-  - Unit tests coverage for `SlabAllocator` (Boundary check, edge case, OOM handling).
-- [x] **CI/CD Pipeline Automation**
-  - **GitHub Actions workflow** for automated building and testing on Linux/Ubuntu runners.
-- [x] **Performance Profiling**
-  - Integration of **Google Benchmark**.
-  - Throughput analysis: `SlabAllocator` vs. System `malloc`.
+**Acceptance**
+- Configure and build via CMake using the documented setup.
+- The allocator's API is available and supports O(1) `Allocate`/`Free`.
+- Git hooks and the commit message template are available in the repository.
 
-## v0.3.0: Hardware Optimization & Architecture
-Low-level optimizations targeting specific hardware constraints and modern CPU architectures.
-- [x] **Arbitrary Alignment Engine**
-  - Enforce custom alignment boundaries at the Pool initialization stage.
-  - Implement cross-platform OS-level aligned memory APIs (`_aligned_malloc` for Windows, `posix_memalign` for POSIX).
-- [x] **Cache Coherency & SIMD Compatibility**
-  - Enforce 64-byte (Cache Line) alignment to prevent False Sharing in multi-core scenarios.
-  - Validate memory alignment constraints for SIMD instructions (e.g., 16-byte for NEON, 32-byte for AVX).
+**References**
+- [README → Quick Start](../README.md#quick-start)
+- [Dockerfile](../Dockerfile)
+- [Header](../include/slab_allocator.h)
+- [Source](../src/slab_allocator.cpp)
+
+---
+
+## v0.2.0: Reliability, Tests, and CI
+**Goal:** Introduce automated tests, CI, and an initial allocator benchmark.
+
+**Why/Context:** Make changes verifiable and reduce regression risk.
+- [x] **Unit Tests (GoogleTest)**
+  - Cover the allocator's core success, OOM, and boundary cases.
+- [x] **CI Pipeline**
+  - GitHub Actions workflow builds and runs tests on a Linux runner.
+- [x] **Benchmark (Google Benchmark)**
+  - Add an initial release-mode benchmark for allocator-vs-malloc comparison.
+
+**Acceptance**
+- Unit tests cover allocator success, OOM behavior, and boundary conditions.
+- CI green on a clean Linux runner: configure, build, and run tests.
+- An initial allocator benchmark is present and runnable for a fixed small-object batch workload.
+
+**References**
+- [README → Quick Start](../README.md#quick-start)
+- [CI](../.github/workflows/ci.yml)
+- [Tests](../tests/slab_allocator_test.cpp)
+- [Benchmark](../tests/benchmark_slab.cpp)
+
+---
+
+## v0.3.0: Alignment Support & Routing Architecture
+**Goal:** Introduce alignment-aware allocation and multi-size-class routing without linear scans.
+
+**Why/Context:** Extend the single-size slab into multiple size classes.
+- [x] **Arbitrary Alignment Support**
+  - Satisfy user-specified alignment with a platform floor by `max(requested alignment, sizeof(void*))`.
+  - Cross-platform aligned allocation APIs (`_aligned_malloc` for Windows, `posix_memalign` for POSIX).
+- [x] **Representative Alignment Cases**
+  - Support class-specific alignment outcomes, including 16-byte, 32-byte, and 64-byte requests.
+  - Validate that aligned requests route to a size class that satisfies the requested alignment.
 - [x] **Segregated Free Lists (Slab Classes)**
-  - Implement a `SlabManager` dispatcher to manage multiple generic size classes (e.g., 16B, 32B, 64B, 128B).
-  - O(1) size class routing to provide a generalized, fragmentation-free memory allocation interface.
+  - `SlabManager` manages multiple size classes (16, 32, 64, 128, 256, 512, 1024 bytes).
+  - O(1) size-class routing across fixed-capacity segregated classes.
 
-## v0.4.0: Memory Safety & Corruption Detection
-Core fail-fast diagnostics for detecting runtime memory corruption in a constrained environment.
-- [ ] **Compile-Time Safety Toggles**
-  - Implement `#ifdef MCR_DEBUG_MEMORY` toggles to ensure absolute zero-overhead in Release builds.
-- [ ] **Corruption Detection (Sanitizers)**
-  - **Redzone Protection (Canaries)**: Insert `0xDEADBEEF` magic patterns before/after allocated blocks to catch out-of-bounds (OOB) writes.
-  - **Poisoning**: Fill freed memory blocks with `0xCCCCCCCC` to ensure Use-After-Free (UAF) anomalies trigger immediate, predictable crashes.
-  - **Endian-Safe Implementation**: Ensure magic numbers are reliably verifiable across different CPU architectures (x86/ARM).
-- [ ] **Automated Memory Validation (CI)**
-  - Implement **GoogleTest Death Tests** to validate fail-fast mechanisms upon memory corruption.
-  - Add separated **GitHub Actions pipelines**: Debug (Sanitizers enabled) for safety validation, and Release for throughput benchmarking.
+**Acceptance**
+- Targeted alignment tests pass for representative aligned request cases.
+- Effective alignment follows `max(requested alignment, sizeof(void*))`.
+- Size-class routing is implemented without linear scans and is documented as O(1).
 
-## v0.5.0: Memory Diagnostics & Advanced Profiling
-Advanced state tracking, recovery mechanisms, and cross-platform verification.
-- [ ] **Lifecycle & Leak Diagnostics**
-  - **Active Allocation Registry**: Track allocated block lifecycles to detect memory leaks.
-  - **Allocation Site Tracking**: Capture `__FILE__` and `__LINE__` via macros during allocation to pinpoint the exact source of leaks or redzone violations.
-  - **Fragmentation Analysis**: Generate **Memory Heatmaps** based on registry data for visual fragmentation debugging.
-- [ ] **Advanced Safety & Recovery**
-  - **Custom OOM Handler**: Implement an Out-of-Memory callback mechanism, allowing the application layer to flush caches or perform emergency saves before aborting.
-  - **Thread Ownership Assertion**: Record `std::this_thread::get_id()` upon allocation to detect illegal cross-thread deallocations in lock-free contexts.
-- [ ] **Cross-Platform CI Verification**
-  - **ARM Architecture Verification**: Utilize QEMU within CI to verify alignment constraints and endian-safe redzones on ARM toolchains.
+**References**
+- [Allocator Header](../include/slab_allocator.h)
+- [Allocator Source](../src/slab_allocator.cpp)
+- [Allocator Test](../tests/slab_allocator_test.cpp)
+- [Manager Header](../include/slab_manager.h)
+- [Manager Source](../src/slab_manager.cpp)
+- [Manager Test](../tests/slab_manager_test.cpp)
 
-## v1.0.0: System Integration & Delivery
-Full runtime integration with simulation subsystems.
-- [ ] **Subsystem Integration**
-- [ ] **Cross-Platform Verification**
-- [ ] **Documentation**: API Reference generation using Doxygen.
+---
+
+## v0.3.1: Stabilization & Validation
+**Goal:** Stabilize allocator and manager behavior by aligning tests, public contracts, and code comments.
+
+**Why/Context:** Keep the scope stable while making allocator and manager behavior clearer and more testable.
+- Stabilization-first: bug fixes, contract-alignment changes, tests, CI, and comments are allowed.
+- No new subsystem scope is introduced.
+- Keep scope tight to avoid unnecessary changes and regressions.
+
+**Acceptance**
+- Routing symmetry for allocation and deallocation with the same `(size, alignment)` pair is covered by tests.
+- Alignment validation is performed at the manager allocation entry.
+- Allocator and manager code, tests, and public contract wording are aligned with current behavior.
+
+---
+
+## v0.4.0: Debug Memory Diagnostics & Corruption Detection
+**Goal:** Introduce debug-oriented diagnostics for detecting memory corruption and invalid memory use.
+
+**Why/Context:** Add fail-fast validation mechanisms that help detect memory corruption earlier.
+- [ ] **Debug-Only Safety Toggles**
+  - Enable memory diagnostics only in debug builds so release builds do not include these checks.
+- [ ] **Corruption Detection**
+  - Add diagnostics for out-of-bounds writes and invalid reuse of freed memory.
+- [ ] **Validation Coverage**
+  - Add automated validation for fail-fast diagnostics and ensure they can be run in debug/CI workflows.
+
+**Acceptance**
+- Debug-only memory diagnostics can be enabled without changing normal release behavior.
+- Out-of-bounds and invalid reuse checks are present in debug-oriented paths.
+- Diagnostic checks have automated validation coverage.
+
+---
+
+## v0.5.0: Memory Diagnostics & Observability
+**Goal:** Extend allocator diagnostics with lifecycle visibility, failure diagnostics, and validation infrastructure.
+
+**Why/Context:** Extend diagnostics work with better visibility into allocator state and broader validation support.
+- [ ] **Allocation Lifecycle Diagnostics**
+  - Track active allocations and surface leak-related state.
+  - Include allocation-site information for leaks and invalid-use diagnostics.
+  - Summarize fragmentation-related state for better allocator visibility.
+- [ ] **Failure and Usage Diagnostics**
+  - Provide diagnostics or integration points for allocator failure handling.
+  - Add debug checks for invalid ownership or usage patterns where applicable.
+- [ ] **Cross-Platform Validation**
+  - Expand validation workflows to cover additional target environments where relevant.
+
+**Acceptance**
+- Allocation-lifecycle diagnostics provide visibility into active allocations and leak-related state.
+- Additional diagnostic information is available for failure or invalid-usage scenarios.
+- Validation workflows can cover these diagnostics in at least one additional target environment or configuration.

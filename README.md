@@ -1,102 +1,81 @@
-# Micro-Console Runtime Environment
-
+# Micro-Console Runtime
 [![C++ CI Pipeline](https://github.com/BlackHatChen/micro-console-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/BlackHatChen/micro-console-runtime/actions/workflows/ci.yml)
 
-> A high-performance, deterministic C++ runtime simulation for constrained embedded systems.
+Micro-Console Runtime is a C++ systems project for exploring runtime-level system behavior under constrained resources. The current v0.x scope focuses on an allocator-centered memory subsystem.
 
-## 📖 Overview
-This project implements a lightweight runtime environment designed to simulate the strict resource constraints of modern embedded devices. It focuses on deterministic memory management, cache coherency, and system-level reliability, mirroring the architecture of embedded systems and RTOS (Real-Time Operating Systems).
+## Current Status
+- Latest released version: **v0.3.0**
+- Currently working on: **v0.3.1**
 
-**Current Status**: `v0.3.0` completed. In progress: `v0.4.0` (Memory Safety & Debugging Tools).
+## Project Rationale
 
-## ✨ Key Features
-* **Deterministic Memory Model**: Custom `SlabAllocator` and `SlabManager` (Segregated Free Lists) eliminate external fragmentation and ensure predictable allocation in O(1) time.
-  * *Performance*: Achieve **~4.1x throughput improvement** (4.03x speedup) over standard `std::malloc` in high-frequency small object allocation benchmarks (tested by Google Benchmark).
-* **Hardware-Aware & Branchless Design**: 
-  * Implement O(1) size class routing using hardware bit-scan instructions (`__builtin_clzll` / `_BitScanReverse`).
-  * Enforce arbitrary memory alignment (e.g., AVX 32-byte, Cache-Line 64-byte) for SIMD operations and RISC architectures.
-* **Zero Metadata Overhead**: Use C++14 Sized Deallocation semantics (`operator delete(void*, std::size_t)`) to completely eliminate header padding, maximizing memory density.
-* **Reliability & Safety**: Build with RAII (`std::make_unique`, `std::array`) and modern C++17 standards to prevent memory leaks. Cross-platform OS API integration (`_aligned_malloc` / `posix_memalign`) ensures safe aligned memory boundaries.
-* **Reproducibility**: Fully Dockerized development environment for consistent cross-platform builds and CI/CD integration via GitHub Actions.
+### Why this project
+The project addresses and validates low-level system behavior in a constrained-resource environment. The name `Micro-Console Runtime` reflects a long-term vision of a small, bounded execution environment that can host and coordinate multiple runtime subsystems, while the current work focuses on the execution-time support layer rather than application logic.
 
-## 📊 Performance Benchmark
+### Why an allocator subsystem
+Memory management is one of the low-level runtime responsibilities, and an allocator is a subsystem for defining allocation/deallocation behavior, alignment handling, routing rules, and their related contracts and tests. It also provides a focused and verifiable entry point for the current runtime-oriented work.
 
-Benchmarks were conducted using [Google Benchmark](https://github.com/google/benchmark) to compare the `SlabAllocator` against the OS standard `std::malloc`.
+### Why a slab allocator
+A slab allocator divides memory into fixed-size classes, which fits the current memory subsystem's fixed-size allocation paths and helps control external fragmentation in pool-managed memory. It also provides predictable allocation/deallocation costs and supports class-based routing and alignment-aware handling.
 
-**Test Environment:**
-* Compiler optimization: Release mode (`-O3`)
-* Scenario: High-frequency batch allocation and deallocation of 24-byte objects.
+## Current Implementation Scope
+The current implementation focuses on the allocator-centered memory subsystem:
 
-**Results:**
+### Core implementation
+- `SlabAllocator`
+- `SlabManager`
 
-| Benchmark | Time | CPU | Iterations |
-| :--- | :--- | :--- | :--- |
-| `BM_SystemMalloc` | 8171 ns | 7954 ns | 86,163 |
-| `BM_SlabAllocator` | 2025 ns | 1971 ns | 353,274 |
+### Supporting validation and tooling
+- unit tests
+- CI pipeline
+- initial benchmark work for allocator comparison
+- Docker-based reproducible build environment
 
-*Analysis: The custom `SlabAllocator` achieves a **~4.03x speedup** in CPU time and processes roughly **4.1x more iterations** within the same time window compared to a general-purpose allocator. This proves the extreme efficiency of its O(1) embedded free list design and branchless routing in constrained scenarios.*
+Other subsystems are planned separately and are not yet part of the delivered implementation.
 
-## 🚀 Quick Start (Recommended)
+## Key Features
+- **Fixed-Size Allocator**: `SlabAllocator` provides O(1) allocation/deallocation from a fixed-size pool using an embedded free list.
+- **O(1) Size-Class Routing**: `SlabManager` routes requests by `max(size, alignment)` using bit-scan-based size-class mapping and alignment-aware class selection without linear scans.
+- **Explicit Deallocation Contract**: Multi-class deallocation requires caller-supplied `(size, alignment)` instead of per-allocation metadata, preserving O(1) routing symmetry across allocation and deallocation.
+- **Validation and Reproducibility**: Public behavior is supported by unit tests, CI, and a reproducible build environment. Initial benchmark work is available for fixed-workload allocator comparison.
 
-The easiest way to build and run the project is using the provided Docker environment.
-
-### Prerequisites
-* [Docker](https://www.docker.com/) installed on your machine.
-
-### Build & Run
-```
-# 1. Clone the repository
+## Quick Start
+```bash
+# 1. Clone the Repo.
 git clone https://github.com/BlackHatChen/micro-console-runtime.git
 cd micro-console-runtime
 
-# 1.5 Developer Setup (Recommended)
-# Enable Git hooks for consistent commit message enforcement across machines.
-
-# Option A: one-shot setup script
+# (Optional, Bash/Git Bash/WSL) Developer setup: enable Git hooks; auto-set commit template if .gitmessage exists.
 bash scripts/setup-dev.sh
+# Verify (expected: .githooks; .gitmessage if present)
+git config --local --get core.hooksPath
+git config --local --get commit.template || true
 
-# Option B: manual setup
-git config core.hooksPath .githooks
-chmod +x .githooks/commit-msg
+# (Optional) Run in Docker.
+docker build -t micro-runtime-env . # Build the dev image.
 
-# 2. Build the Docker environment
-docker build -t micro-runtime-env .
+# Enter the Docker environment.
+# POSIX shells:
+docker run --rm -it -v "$(pwd)":/app -w /app micro-runtime-env
 
-# 3. Enter the development container
-docker run --rm -it -v $(pwd):/app micro-runtime-env
+# Windows PowerShell:
+# docker run --rm -it -v "${PWD}:/app" -w /app micro-runtime-env
 
-# --- Inside the Container ---
+# 2. Build (Debug).
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --parallel
 
-# 4. Build the project
-mkdir -p build && cd build
+# 3. Run unit tests.
+ctest --test-dir build --output-on-failure
 
-# You can build the Makefile with Default build type.
-cmake ..
-
-# Or with -O3 optimization (Release Mode).
-cmake -DCMAKE_BUILD_TYPE=Release ..
-
-# You can compile the codes with default settings.
-make
-
-# Or compile in parallel with multi-threads.
-make -j$(nproc)
-
-# 5. Run the tests
-
-# You can run the detailed unit tests by the executable:
-./bin/mcr_test
-
-# Or run the automated test using CTest:
-ctest --output-on-failure
-
+# 4. (Optional) Run the allocator benchmark (Release build).
+cmake -S . -B build-rel -DCMAKE_BUILD_TYPE=Release
+cmake --build build-rel --parallel
+./build-rel/bin/mcr_benchmark
 ```
 
-## 🗺️ Roadmap
+## Roadmap
+The current v0.x roadmap is tracked in [ROADMAP](docs/ROADMAP.md).
 
-We follow a structured milestone roadmap towards a v1.0.0 release.
-Please refer to [docs/ROADMAP.md](docs/ROADMAP.md) for detailed development plans.
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
+## License
+The project is licensed under the [MIT License](LICENSE).

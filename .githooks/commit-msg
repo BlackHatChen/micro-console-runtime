@@ -4,23 +4,16 @@ set -euo pipefail
 COMMIT_MSG_FILE="$1"
 
 # ------------------------------------------------------------
-# Allow auto-generated messages
+# Allow auto-generated messages (Merge/Revert)
 # ------------------------------------------------------------
-# Git/GitHub may generate messages like:
-#   "Merge branch 'xxx' ..."
-#   "Revert \"...\""
-# We allow them without enforcing the conventional header rule.
 FIRST_LINE_RAW="$(head -n 1 "$COMMIT_MSG_FILE" || true)"
 if [[ "$FIRST_LINE_RAW" =~ ^Merge[[:space:]] ]] || [[ "$FIRST_LINE_RAW" =~ ^Revert[[:space:]] ]]; then
   exit 0
 fi
 
 # ------------------------------------------------------------
-# Find the effective header line
+# Find the effective header line (first non-empty, non-comment)
 # ------------------------------------------------------------
-# Use the first non-empty, non-comment line as the header.
-# This keeps the hook compatible with commit templates (.gitmessage),
-# which often start with comment lines.
 HEADER_LINE=""
 HEADER_LINE_NO=0
 LINE_NO=0
@@ -47,36 +40,45 @@ fi
 
 # ------------------------------------------------------------
 # Header rule
-# ------------------------------------------------------------
 # Format: <type>(<scope>): <subject>
 # Subject length: 1..50 characters
 #
 # Types:
 #   mm, alloc, lock, feat, fix, perf, refactor, test, docs, ci
 #
-# Scopes:
-#   Allocator: buddy, slab, arena, freelist, gc, os, sync, api, align
-#   Concurrency: ring, zerocopy, watchdog, telemetry
-#   Simulation: ecs, timestep, simd, hal, loop
-REGEX="^(mm|alloc|lock|feat|fix|perf|refactor|test|docs|ci)(\((buddy|slab|arena|freelist|gc|os|sync|api|align|ring|zerocopy|watchdog|telemetry|ecs|timestep|simd|hal|loop)\))?: .{1,50}$"
+# Scopes (plus common docs/flow scopes you use):
+#   buddy, slab, manager, arena, freelist, gc, os, sync, api, align,
+#   ring, zerocopy, watchdog, telemetry, ecs, timestep, simd, hal, loop,
+#   roadmap, readme, release, adr, repro, bench, workflow, hook, changelog
+# ------------------------------------------------------------
+REGEX="^(mm|alloc|lock|feat|fix|perf|refactor|test|docs|ci)(\((buddy|slab|manager|arena|freelist|gc|os|sync|api|align|ring|zerocopy|watchdog|telemetry|ecs|timestep|simd|hal|loop|roadmap|readme|release|adr|repro|bench|workflow|hook|changelog)\))?: .{1,50}$"
 
 if ! [[ "$HEADER_LINE" =~ $REGEX ]]; then
   echo "❌ Error: Commit message header does not follow system standards."
   echo "Format: <type>(<scope>): <subject>"
   echo "Valid types: mm, alloc, lock, feat, fix, perf, refactor, test, docs, ci"
   echo "Valid scopes:"
-  echo "buddy, slab, arena, freelist, gc, os, sync, api, align, ring, zerocopy, watchdog, telemetry, ecs, timestep, simd, hal, loop"
+  echo "buddy, slab, manager, arena, freelist, gc, os, sync, api, align, ring, zerocopy,"
+  echo "watchdog, telemetry, ecs, timestep, simd, hal, loop, roadmap, readme,"
+  echo "release, adr, repro, bench, workflow, hook, changelog"
   echo "Subject length: max 50 chars"
   echo "------------------------------------------------"
   echo "Your header (line $HEADER_LINE_NO): $HEADER_LINE"
   exit 1
 fi
 
+# 2) subject length is already constrained by REGEX (1..50),
+#    additionally forbid trailing period.
+subject="${HEADER_LINE#*: }"
+if [[ "$subject" =~ \.$ ]]; then
+  echo "❌ Error: Subject must not end with a period."
+  echo "Subject: $subject"
+  exit 1
+fi
+
 # ------------------------------------------------------------
 # Blank line after header
 # ------------------------------------------------------------
-# Rule: the line immediately after the header must be empty.
-# We allow comment lines too.
 NEXT_LINE_NO=$((HEADER_LINE_NO + 1))
 NEXT_LINE="$(sed -n "${NEXT_LINE_NO}p" "$COMMIT_MSG_FILE" || true)"
 if [[ -n "$NEXT_LINE" ]] && [[ ! "$NEXT_LINE" =~ ^# ]]; then
@@ -86,12 +88,11 @@ if [[ -n "$NEXT_LINE" ]] && [[ ! "$NEXT_LINE" =~ ^# ]]; then
   exit 1
 fi
 
-
 # ------------------------------------------------------------
 # Require body for selected types
-# ------------------------------------------------------------
 # Enforce body (non-empty, non-comment): mm, alloc, lock, feat, fix, perf
 # Allow body to be omitted: docs, test, ci, refactor
+# ------------------------------------------------------------
 TYPE="${HEADER_LINE%%(*}"
 TYPE="${TYPE%%:*}"
 REQUIRE_BODY=0
@@ -127,8 +128,8 @@ fi
 
 # ------------------------------------------------------------
 # Body line length (warning only)
-# ------------------------------------------------------------
 # Warn if any non-comment, non-URL line exceeds 72 characters.
+# ------------------------------------------------------------
 LINE_NO=0
 while IFS= read -r line || [[ -n "$line" ]]; do
   ((++LINE_NO))
@@ -148,3 +149,4 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 done < "$COMMIT_MSG_FILE"
 
 exit 0
+``

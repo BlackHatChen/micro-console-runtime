@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 # Prevent interactive message during the install process.
-ENV DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Update package list and install the build tools.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gdb \
     ninja-build \
     valgrind \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --system --add safe.directory /app
 
 WORKDIR /app
 CMD ["/bin/bash"]
