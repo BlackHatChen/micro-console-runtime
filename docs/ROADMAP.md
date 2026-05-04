@@ -1,14 +1,14 @@
 # Micro Console Runtime - Engineering Roadmap
-- This roadmap tracks version goals and acceptance across v0.x, with a later integration reserved beyond the current allocator scope.
+- This roadmap tracks version goals and acceptance across v0.x, with a later integration milestone reserved for broader runtime work.
 - **Scope (v0.x):** memory subsystem work centered on the allocator, with supporting validation and tooling. Other subsystems are still planned.
-- See [README → Current Status](../README.md#current-status). Commands references are listed in [README → Quick Start](../README.md#quick-start).
+- See [README → Current Status](../README.md#current-status). Related commands are listed in [README → Quick Start](../README.md#quick-start).
 
 ---
 
 ## v0.1.0: Core Infrastructure & Allocator
 **Goal:** Establish a reproducible build setup and deliver a minimal slab allocator.
 
-**Why/Context:** Establish a foundation for later versions.
+**Why/Context:** Provide a stable starting point for later versions.
 - [x] **Build System & Environment**
   - Project structure (`src`, `include`, `tests`, `docs`).
   - CMake build setup with strict warnings enabled.
@@ -62,17 +62,17 @@
 **Why/Context:** Extend the single-size slab into multiple size classes.
 - [x] **Arbitrary Alignment Support**
   - Satisfy user-specified alignment with a platform floor by `max(requested alignment, sizeof(void*))`.
-  - Cross-platform aligned allocation API (`_aligned_malloc` for Windows, `posix_memalign` for POSIX).
+  - Cross-platform aligned allocation APIs (`_aligned_malloc` for Windows, `posix_memalign` for POSIX).
 - [x] **Representative Alignment Cases**
   - Support class-specific alignment outcomes, including 16-byte, 32-byte, and 64-byte requests.
-  - Validate that aligned requests route to size class that satisfy the requested alignment.
+  - Validate that aligned requests route to a size class that satisfies the requested alignment.
 - [x] **Segregated Free Lists (Slab Classes)**
   - `SlabManager` manages multiple size classes (16, 32, 64, 128, 256, 512, 1024 bytes).
   - O(1) size-class routing across fixed-capacity segregated classes.
 
 **Acceptance**
 - Targeted alignment tests pass for representative aligned request cases.
-- The effective alignment is satisfied by `max(requested alignment, sizeof(void*))`.
+- Effective alignment follows `max(requested alignment, sizeof(void*))`.
 - Size-class routing is implemented without linear scans and is documented as O(1).
 
 **References**
@@ -136,8 +136,3 @@
 - Allocation-lifecycle diagnostics provide visibility into active allocations and leak-related state.
 - Additional diagnostic information is available for failure or invalid-usage scenarios.
 - Validation workflows can cover these diagnostics in at least one additional target environment or configuration.
-
----
-
-## v1.0.0: Future Runtime Integration Milestone
-**Goal:** Reserve a later milestone for broader runtime integration beyond the current allocator-centored scope.
