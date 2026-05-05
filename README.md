@@ -4,8 +4,7 @@
 Micro-Console Runtime is a C++ systems project for exploring runtime-level system behavior under constrained resources. The current v0.x scope focuses on an allocator-centered memory subsystem.
 
 ## Current Status
-- Latest released version: **v0.3.0**
-- Currently working on: **v0.3.1**
+- Latest released version: **v0.3.1**
 
 ## Project Rationale
 
