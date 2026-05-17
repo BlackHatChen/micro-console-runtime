@@ -1,6 +1,6 @@
 # Micro-Console Runtime
 [![C++ CI Pipeline](https://github.com/BlackHatChen/micro-console-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/BlackHatChen/micro-console-runtime/actions/workflows/ci.yml)
-
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)  
 Micro-Console Runtime is a C++ systems project for exploring runtime-level system behavior under constrained resources. The current v0.x scope focuses on an allocator-centered memory subsystem.
 
 ## Current Status
