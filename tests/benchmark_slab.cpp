@@ -68,6 +68,3 @@ namespace
     // Register the test.
     BENCHMARK(BM_SlabAllocator);
 }
-
-// Main function macro provided by Google Benchmark.
-BENCHMARK_MAIN();
