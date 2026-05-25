@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <limits>
+#include <new>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <malloc.h> // for _aligned_malloc and _aligned_free
@@ -23,8 +25,19 @@ namespace mcr
         alignment_ = std::max(alignment_, sizeof(void *));
 
         // Adjust the final block size.
-        block_size = std::max(block_size, sizeof(FreeBlock));            // Ensure the block is large enough to hold an embedded free-list node.
-        block_size_ = (block_size + alignment_ - 1) & ~(alignment_ - 1); // Round the final block size up to the nearest multiple of alignment_.
+        // Ensure the block is large enough to hold an embedded free-list node.
+        block_size = std::max(block_size, sizeof(FreeBlock));
+
+        // Avoid the block size become overflow during round up.
+        const std::size_t max_size = std::numeric_limits<std::size_t>::max();
+        const std::size_t align_padding = alignment_ - 1;
+        if (block_size > max_size - align_padding)
+        {
+            throw std::invalid_argument("Block size overflow.");
+        }
+
+        // Round the final block size up to the nearest multiple of alignment_.
+        block_size_ = (block_size + align_padding) & ~(align_padding);
 
         // Compute how many whole blocks fit in the requested pool size.
         std::size_t block_count = pool_size / block_size_;
