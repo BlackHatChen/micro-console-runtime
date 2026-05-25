@@ -57,6 +57,8 @@ namespace mcr
          *
          * - `size` and `alignment` must match the values used at the allocation site.
          * 
+         * - Uses the caller-supplied `(size, alignment)` pair for size-class routing. It does not validate pointer ownership and allocation-site symmetry.
+         * 
          * - Passing a mismatched `(size, alignment)` pair, a non-owned pointer, a non-block pointer, or double-freeing a block is a contract violation (undefined behavior).
          *
          * @param ptr Pointer to the memory to be freed.
