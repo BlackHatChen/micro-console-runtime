@@ -133,6 +133,13 @@ TEST(SlabManagerTest, AllocationWhoseAlignmentExceedsMaxClassSizeReturnsNullptr)
     EXPECT_EQ(manager.Allocate(16, 2048), nullptr);
 }
 
+TEST(SlabManagerTest, ZeroSizeThrowsInvalidArgument)
+{
+    mcr::SlabManager manager;
+
+    EXPECT_THROW({ manager.Allocate(0); }, std::invalid_argument);
+}
+
 TEST(SlabManagerTest, ZeroAlignmentThrowsInvalidArgument)
 {
     mcr::SlabManager manager;

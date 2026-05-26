@@ -54,6 +54,11 @@ namespace mcr
 
     void *SlabManager::Allocate(std::size_t size, std::size_t alignment)
     {
+        if (size == 0)
+        {
+            throw std::invalid_argument("Size must be non-zero.");
+        }
+
         if (alignment == 0 || (alignment & (alignment - 1)) != 0)
         {
             throw std::invalid_argument("Alignment must be non-zero and a power of 2.");
