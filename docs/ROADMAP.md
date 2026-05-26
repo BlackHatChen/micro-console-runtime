@@ -104,6 +104,7 @@
 **Goal:** Introduce debug-oriented diagnostics for detecting memory corruption and invalid memory use.
 
 **Why/Context:** Add fail-fast validation mechanisms that help detect memory corruption earlier.
+> Note: Future diagnostics may rely on debug-only auxiliary metadata or tracking structures. Such mechanisms are not part of the current release-mode zero-metadata allocator contract.
 - [ ] **Debug-Only Safety Toggles**
   - Enable memory diagnostics only in debug builds so release builds do not include these checks.
 - [ ] **Corruption Detection**
