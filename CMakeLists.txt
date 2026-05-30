@@ -65,6 +65,7 @@ if(BUILD_TESTING)
     FetchContent_Declare(   # Declare where to fetch GoogleTest.
         googletest
         URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+        URL_HASH SHA256=1f357c27ca988c3f7c6b4bf68a9395005ac6761f034046e9dde0896e3aba00e4
     )
     if(MSVC)
         # For Windows: Prevent overriding the parent project's compiler/linker settings.
@@ -74,6 +75,7 @@ if(BUILD_TESTING)
     FetchContent_Declare(   # Declare where to fetch Google Benchmark.
         googlebenchmark
         URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
+        URL_HASH SHA256=abfc22e33e3594d0edf8eaddaf4d84a2ffc491ad74b6a7edc6e7a608f690e691
     )
     set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)   # Disable built-in tests.
     set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)   # Just use the tool, not install it.
