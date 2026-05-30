@@ -49,35 +49,37 @@ target_compile_options(mcr_project_warnings         # Add warning flags to the i
 )
 
 # ------------------------------------------------------------
-# Third-party dependencies (GoogleTest and Google Benchmark)
-# ------------------------------------------------------------
-
-include(FetchContent)   # Allow fetching third-party projects.
-
-FetchContent_Declare(   # Declare where to fetch GoogleTest.
-    googletest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-)
-if(MSVC)
-    # For Windows: Prevent overriding the parent project's compiler/linker settings.
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-endif()
-
-FetchContent_Declare(   # Declare where to fetch Google Benchmark.
-    googlebenchmark
-    URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
-)
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)   # Disable built-in tests.
-set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)   # Just use the tool, not install it.
-
-FetchContent_MakeAvailable(googletest googlebenchmark)
-
-# ------------------------------------------------------------
 # Testing gate (CTest)
 # ------------------------------------------------------------
 
 # Provides BUILD_TESTING option and the testing infrastructures.
 include(CTest)
+
+# ------------------------------------------------------------
+# Third-party dependencies (GoogleTest and Google Benchmark)
+# ------------------------------------------------------------
+
+if(BUILD_TESTING)
+    include(FetchContent)   # Allow fetching third-party projects.
+
+    FetchContent_Declare(   # Declare where to fetch GoogleTest.
+        googletest
+        URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+    )
+    if(MSVC)
+        # For Windows: Prevent overriding the parent project's compiler/linker settings.
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    endif()
+
+    FetchContent_Declare(   # Declare where to fetch Google Benchmark.
+        googlebenchmark
+        URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
+    )
+    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)   # Disable built-in tests.
+    set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)   # Just use the tool, not install it.
+
+    FetchContent_MakeAvailable(googletest googlebenchmark)
+endif()
 
 # ------------------------------------------------------------
 # Subdirectories
