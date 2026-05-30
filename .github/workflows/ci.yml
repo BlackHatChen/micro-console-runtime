@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       BUILD_DIR: ${{ github.workspace }}/build
       BUILD_DIR_REL: ${{ github.workspace }}/build-rel
