@@ -6,7 +6,7 @@ Micro-Console Runtime is a C++ system-oriented project for exploring selected ru
 > Note: In the current allocator subsystem, "constrained resources" refers to bounded pool-managed memory and fixed-size allocation paths.
 
 ## Current Status
-- Latest released version: **v0.3.1**
+- Latest released version: **v0.3.2**
 
 ## Project Rationale
 

@@ -1,5 +1,5 @@
 # Micro Console Runtime - Engineering Roadmap
-- This roadmap tracks version goals and acceptance across v0.x, with a later integration milestone reserved for broader runtime work.
+- This roadmap tracks version goals and acceptance across v0.x. Broader runtime integration remains a later direction beyond the current scope.
 - **Scope (v0.x):** memory subsystem work centered on the allocator, with supporting validation and tooling. Other subsystems are still planned.
 - See [README → Current Status](../README.md#current-status). Related commands are listed in [README → Quick Start](../README.md#quick-start).
 
@@ -97,6 +97,21 @@
 - Routing symmetry for allocation and deallocation with the same `(size, alignment)` pair is covered by tests.
 - Alignment validation is performed at the manager allocation entry.
 - Allocator and manager code, tests, and public contract wording are aligned with current behavior.
+
+---
+
+## v0.3.2: Correctness Follow-up
+**Goal:** Tighten remaining allocator and manager correctness issues.
+
+**Why/Context:** `v0.3.1` still left follow-up issues before `v0.4.0`.
+- Strengthen manager-side request validation.
+- Harden allocator-side setup safety for large block-size inputs.
+- Align benchmark-target setup assumptions with current allocator behavior.
+
+**Acceptance**
+- Zero-size allocation requests are rejected at the manager allocation step and covered by tests.
+- Overflow-prone block-size round-up is rejected during allocator setup and covered by tests.
+- The benchmark target derives slab capacity from effective block-size assumptions.
 
 ---
 

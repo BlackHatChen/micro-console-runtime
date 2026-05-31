@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(micro-console-runtime VERSION 0.3.1 LANGUAGES CXX)
+project(micro-console-runtime VERSION 0.3.2 LANGUAGES CXX)
 
 # ------------------------------------------------------------
 # Language & tooling & setting
