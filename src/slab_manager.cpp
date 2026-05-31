@@ -32,8 +32,10 @@ namespace mcr
             throw std::invalid_argument("Size exceeds maximum managed class size.");
         }
 
-        std::size_t s = size - 1; // Keeps exact powers of 2 in their own class.
-        unsigned long highest_bit_index = 0;
+        // Use `size - 1` so exact powers of 2 stay in their own class.
+        // For example, size 32 maps to class 32 instead of class 64.
+        std::size_t s = size - 1;
+        unsigned long highest_bit_index = 0; // After the bit scan, this is `floor(log2(size - 1))`.
 #if defined(_WIN32) || defined(_WIN64)
 #ifdef _WIN64
         _BitScanReverse64(&highest_bit_index, s);
@@ -43,11 +45,20 @@ namespace mcr
 #else
         highest_bit_index = 63 - __builtin_clzll(static_cast<unsigned long long>(s));
 #endif
-        return static_cast<std::size_t>(highest_bit_index - 3);
+
+        // `floor(log2(size - 1)) + 1` gives `ceil(log2(size))` for this size-class mapping.
+        // kMinClassSize is 16 = 2^4, so subtract log2(16) = 4 to get the zero-based class index.
+        static constexpr unsigned kMinClassLog2 = 4;
+        return static_cast<std::size_t>(highest_bit_index + 1 - kMinClassLog2);
     }
 
     void *SlabManager::Allocate(std::size_t size, std::size_t alignment)
     {
+        if (size == 0)
+        {
+            throw std::invalid_argument("Size must be non-zero.");
+        }
+
         if (alignment == 0 || (alignment & (alignment - 1)) != 0)
         {
             throw std::invalid_argument("Alignment must be non-zero and a power of 2.");

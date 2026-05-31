@@ -59,6 +59,38 @@ TEST(SlabManagerTest, PerClassAlignmentMatrix)
     }
 }
 
+TEST(SlabManagerTest, RequestExhaustsOnlyRoutedSizeClass)
+{
+    mcr::SlabManager manager;
+
+    constexpr int kBlocksPerClass = 100;
+
+    std::array<void *, kBlocksPerClass> ptrs{};
+
+    // Request 40 bytes routes to the 64-byte class.
+    for (int i = 0; i < kBlocksPerClass; i++)
+    {
+        ptrs[i] = manager.Allocate(40);
+        ASSERT_NE(ptrs[i], nullptr);
+    }
+
+    EXPECT_EQ(manager.Allocate(40), nullptr);
+
+    // Other size classes should still have capacity.
+    void *small_ptr = manager.Allocate(16);
+    void *large_ptr = manager.Allocate(128);
+    ASSERT_NE(small_ptr, nullptr);
+    ASSERT_NE(large_ptr, nullptr);
+
+    manager.Free(small_ptr, 16, sizeof(void *));
+    manager.Free(large_ptr, 128, sizeof(void *));
+
+    for (void *ptr : ptrs)
+    {
+        manager.Free(ptr, 40, sizeof(void *));
+    }
+}
+
 // ------------------------------------------------------------
 // Deallocation and reuse behavior.
 // ------------------------------------------------------------
@@ -131,6 +163,13 @@ TEST(SlabManagerTest, AllocationWhoseAlignmentExceedsMaxClassSizeReturnsNullptr)
 
     // If `max(size, alignment)` exceeds the maximum managed class size (1024 bytes), it should return nullptr.
     EXPECT_EQ(manager.Allocate(16, 2048), nullptr);
+}
+
+TEST(SlabManagerTest, ZeroSizeThrowsInvalidArgument)
+{
+    mcr::SlabManager manager;
+
+    EXPECT_THROW({ manager.Allocate(0); }, std::invalid_argument);
 }
 
 TEST(SlabManagerTest, ZeroAlignmentThrowsInvalidArgument)

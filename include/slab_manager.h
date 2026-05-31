@@ -42,7 +42,7 @@ namespace mcr
          * @param size The requested memory size.
          * @param alignment The requested alignment. Must be non-zero and a power of 2. The same alignment must be supplied to `Free()` for symmetric routing.
          * @return Pointer to the allocated memory, or nullptr if the target size class is exhausted or if `max(size, alignment)` exceeds the maximum managed class size.
-         * @throws std::invalid_argument If `alignment` is zero or not a power of 2.
+         * @throws std::invalid_argument If `size` is zero, or if `alignment` is zero or not a power of 2.
          */
         void *Allocate(std::size_t size, std::size_t alignment = sizeof(void *));
 
@@ -56,6 +56,8 @@ namespace mcr
          * - `ptr == nullptr` is allowed and is a no-op.
          *
          * - `size` and `alignment` must match the values used at the allocation site.
+         * 
+         * - Uses the caller-supplied `(size, alignment)` pair for size-class routing. It does not validate pointer ownership and allocation-site symmetry.
          * 
          * - Passing a mismatched `(size, alignment)` pair, a non-owned pointer, a non-block pointer, or double-freeing a block is a contract violation (undefined behavior).
          *

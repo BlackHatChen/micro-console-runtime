@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <stdexcept>
+#include <limits>
 
 // Test object used for block-size and alignment-related allocator tests.
 struct TestObj
@@ -319,6 +320,15 @@ TEST(SlabAllocatorTest, ZeroAlignmentThrowsInvalidArgument)
     const std::size_t valid_pool_size = EffectiveBlockSize(sizeof(TestObj)) * 2; // sufficient pool size
 
     EXPECT_THROW({ mcr::SlabAllocator allocator(sizeof(TestObj), valid_pool_size, 0); }, std::invalid_argument);
+}
+
+TEST(SlabAllocatorTest, BlockSizeRoundingOverflowThrowsInvalidArgument)
+{
+    const std::size_t alignment = 64;
+    const std::size_t huge_block_size = std::numeric_limits<std::size_t>::max() - (alignment - 2);
+    const std::size_t pool_size = huge_block_size;
+
+    EXPECT_THROW({ mcr::SlabAllocator allocator(huge_block_size, pool_size, alignment); }, std::invalid_argument);
 }
 
 TEST(SlabAllocatorTest, InsufficientAlignedPoolSizeThrowsInvalidArgument)

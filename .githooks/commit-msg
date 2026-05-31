@@ -20,7 +20,7 @@ LINE_NO=0
 
 while IFS= read -r line || [[ -n "$line" ]]; do
   ((++LINE_NO))
-  # skip comments and empty lines
+  # Skip comments and empty lines.
   if [[ "$line" =~ ^# ]]; then
     continue
   fi
@@ -40,35 +40,38 @@ fi
 
 # ------------------------------------------------------------
 # Header rule
-# Format: <type>(<scope>): <subject>
+# Format:
+#   <type>: <subject>
+#   <type>(<scope>): <subject>
+#
 # Subject length: 1..50 characters
 #
 # Types:
-#   mm, alloc, lock, feat, fix, perf, refactor, test, docs, ci
+#   feat, fix, perf, refactor, test, docs, build, ci, chore
 #
-# Scopes (plus common docs/flow scopes you use):
-#   buddy, slab, manager, arena, freelist, gc, os, sync, api, align,
-#   ring, zerocopy, watchdog, telemetry, ecs, timestep, simd, hal, loop,
-#   roadmap, readme, release, adr, repro, bench, workflow, hook, changelog
+# Scope:
+#   Optional and free-form.
+#   If present, use lowercase letters, digits, and hyphens only.
+#   Examples: slab, manager, readme, cmake, bench, hook
 # ------------------------------------------------------------
-REGEX="^(mm|alloc|lock|feat|fix|perf|refactor|test|docs|ci)(\((buddy|slab|manager|arena|freelist|gc|os|sync|api|align|ring|zerocopy|watchdog|telemetry|ecs|timestep|simd|hal|loop|roadmap|readme|release|adr|repro|bench|workflow|hook|changelog)\))?: .{1,50}$"
+REGEX="^(feat|fix|perf|refactor|test|docs|build|ci|chore)(\([a-z0-9-]+\))?: .{1,50}$"
 
 if ! [[ "$HEADER_LINE" =~ $REGEX ]]; then
-  echo "❌ Error: Commit message header does not follow system standards."
-  echo "Format: <type>(<scope>): <subject>"
-  echo "Valid types: mm, alloc, lock, feat, fix, perf, refactor, test, docs, ci"
-  echo "Valid scopes:"
-  echo "buddy, slab, manager, arena, freelist, gc, os, sync, api, align, ring, zerocopy,"
-  echo "watchdog, telemetry, ecs, timestep, simd, hal, loop, roadmap, readme,"
-  echo "release, adr, repro, bench, workflow, hook, changelog"
+  echo "❌ Error: Commit message header does not follow project standards."
+  echo "Format:"
+  echo "  <type>: <subject>"
+  echo "  <type>(<scope>): <subject>"
+  echo "Valid types: feat, fix, perf, refactor, test, docs, build, ci, chore"
+  echo "Scope is optional and free-form."
+  echo "If present, use lowercase letters, digits, and hyphens only."
   echo "Subject length: max 50 chars"
   echo "------------------------------------------------"
   echo "Your header (line $HEADER_LINE_NO): $HEADER_LINE"
   exit 1
 fi
 
-# 2) subject length is already constrained by REGEX (1..50),
-#    additionally forbid trailing period.
+# Subject length is already constrained by REGEX (1..50).
+# Additionally forbid trailing period.
 subject="${HEADER_LINE#*: }"
 if [[ "$subject" =~ \.$ ]]; then
   echo "❌ Error: Subject must not end with a period."
@@ -90,14 +93,15 @@ fi
 
 # ------------------------------------------------------------
 # Require body for selected types
-# Enforce body (non-empty, non-comment): mm, alloc, lock, feat, fix, perf
-# Allow body to be omitted: docs, test, ci, refactor
+# Enforce body (non-empty, non-comment): feat, fix, perf
+# Allow body to be omitted: docs, test, ci, refactor, build, chore
 # ------------------------------------------------------------
 TYPE="${HEADER_LINE%%(*}"
 TYPE="${TYPE%%:*}"
 REQUIRE_BODY=0
+
 case "$TYPE" in
-  mm|alloc|lock|feat|fix|perf)
+  feat|fix|perf)
     REQUIRE_BODY=1
     ;;
 esac
@@ -105,13 +109,14 @@ esac
 if [[ $REQUIRE_BODY -eq 1 ]]; then
   HAS_BODY=0
   START_LINE=$((HEADER_LINE_NO + 2))
-  # Scan from the first line after the mandatory blank line
+
+  # Scan from the first line after the mandatory blank line.
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Skip comment lines
+    # Skip comment lines.
     if [[ "$line" =~ ^# ]]; then
       continue
     fi
-    # Skip empty lines
+    # Skip empty lines.
     if [[ -z "$line" ]]; then
       continue
     fi
@@ -121,7 +126,7 @@ if [[ $REQUIRE_BODY -eq 1 ]]; then
 
   if [[ $HAS_BODY -eq 0 ]]; then
     echo "❌ Error: Commit body is required for type '$TYPE'."
-    echo "Hint: Add a short body after the blank line (e.g., Why/How/Verify)."
+    echo "Hint: Add a short body after the blank line (e.g., Why/How/Impact)."
     exit 1
   fi
 fi
@@ -133,15 +138,15 @@ fi
 LINE_NO=0
 while IFS= read -r line || [[ -n "$line" ]]; do
   ((++LINE_NO))
-  # Skip everything up to (and including) the header line
+  # Skip everything up to (and including) the header line.
   if [[ $LINE_NO -le $HEADER_LINE_NO ]]; then
     continue
   fi
-  # Skip comment lines
+  # Skip comment lines.
   if [[ "$line" =~ ^# ]]; then
     continue
   fi
-  # Ignore URLs in the 72-char warning check
+  # Ignore URLs in the 72-char warning check.
   if [[ ${#line} -gt 72 ]] && [[ ! "$line" =~ http ]]; then
     echo "⚠️  Warning: Line $LINE_NO in body exceeds 72 characters."
     echo "Content: ${line:0:60}..."
@@ -149,4 +154,3 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 done < "$COMMIT_MSG_FILE"
 
 exit 0
-``
