@@ -30,7 +30,7 @@ The current implementation focuses on the allocator-centered memory subsystem:
 - unit tests
 - CI pipeline
 - initial benchmark work for allocator comparison
-- Docker-based reproducible build environment
+- Docker-based Linux build environment
 
 Other subsystems are planned separately and are not yet part of the delivered implementation.
 
@@ -38,7 +38,7 @@ Other subsystems are planned separately and are not yet part of the delivered im
 - **Fixed-Size Allocator**: `SlabAllocator` provides O(1) allocation/deallocation from a fixed-size pool using an embedded free list.
 - **O(1) Size-Class Routing**: `SlabManager` routes requests by `max(size, alignment)` using bit-scan-based size-class mapping and alignment-aware class selection without linear scans.
 - **Explicit Deallocation Contract**: Multi-class deallocation requires caller-supplied `(size, alignment)` instead of per-allocation metadata, preserving O(1) routing symmetry across allocation and deallocation.
-- **Validation and Reproducibility**: Public behavior is supported by unit tests, CI, and a reproducible build environment. Initial benchmark work is available for fixed-workload allocator comparison.
+- **Validation and Build Workflow**: Public behavior is supported by unit tests, CI, and a Docker-based Linux build environment. Initial benchmark work is available for fixed-workload allocator comparison.
 
 ## Quick Start
 ```bash

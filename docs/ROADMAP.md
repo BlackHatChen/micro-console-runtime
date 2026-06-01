@@ -6,13 +6,13 @@
 ---
 
 ## v0.1.0: Core Infrastructure & Allocator
-**Goal:** Establish a reproducible build setup and deliver a minimal slab allocator.
+**Goal:** Establish a CMake-based build setup and deliver a minimal slab allocator.
 
 **Why/Context:** Provide a stable starting point for later versions.
 - [x] **Build System & Environment**
   - Project structure (`src`, `include`, `tests`, `docs`).
   - CMake build setup with strict warnings enabled.
-  - Docker image for reproducible builds.
+  - Docker image for a Linux build environment.
 - [x] **Repository Workflow Setup**
   - Git hooks and a commit message template.
 - [x] **Slab Allocator**
@@ -103,7 +103,7 @@
 ## v0.3.2: Correctness Follow-up
 **Goal:** Tighten remaining allocator and manager correctness issues.
 
-**Why/Context:** `v0.3.1` still left follow-up issues before `v0.4.0`.
+**Why/Context:** Address remaining correctness issues from `v0.3.1`.
 - Strengthen manager-side request validation.
 - Harden allocator-side setup safety for large block-size inputs.
 - Align benchmark-target setup assumptions with current allocator behavior.
@@ -111,7 +111,7 @@
 **Acceptance**
 - Zero-size allocation requests are rejected at the manager allocation step and covered by tests.
 - Overflow-prone block-size round-up is rejected during allocator setup and covered by tests.
-- The benchmark target derives slab capacity from effective block-size assumptions.
+- The benchmark target builds and runs cleanly under the corrected allocator capacity setup.
 
 ---
 
